@@ -144,8 +144,8 @@ def load_catalog():
             'id': item.get('id'),
             'slug': slugify(item.get('title')),
             'title': item.get('title') or 'Untitled',
-            'poster': item.get('poster') or item.get('poster_url') or '/static/posters/placeholder.jpg',
-            'backdrop': item.get('backdrop') or item.get('poster') or item.get('poster_url') or '/static/posters/placeholder.jpg',
+            'poster': _resolve_poster(item.get('poster') or item.get('poster_url')),
+            'backdrop': _resolve_poster(item.get('backdrop') or item.get('poster') or item.get('poster_url')),
             'rating': item.get('rating') or 0,
             'genres': genres,
             'year': item.get('year') or '',
@@ -167,6 +167,20 @@ def refresh_movie_data_if_needed():
     reload_runtime_data_if_needed()
 
 
+def _resolve_poster(path):
+    if not path:
+        return 'https://via.placeholder.com/300x450?text=No+Poster'
+    if path.startswith('http'):
+        return path
+    # local /static/posters/ path — convert to TMDB URL using filename
+    filename = path.split('/')[-1]
+    # filename format: {movie_id}_{tmdb_key}.jpg
+    parts = filename.replace('.jpg', '').split('_', 1)
+    if len(parts) == 2:
+        return f'https://image.tmdb.org/t/p/w500/{parts[1]}.jpg'
+    return 'https://via.placeholder.com/300x450?text=No+Poster'
+
+
 def movie_card(movie):
     genres = movie.get('genres') or []
     if isinstance(genres, str):
@@ -176,8 +190,8 @@ def movie_card(movie):
         'id': movie.get('id'),
         'slug': movie.get('slug') or slugify(movie.get('title')),
         'title': movie.get('title') or 'Untitled',
-        'poster': movie.get('poster') or movie.get('poster_url') or '/static/posters/placeholder.jpg',
-        'backdrop': movie.get('backdrop') or movie.get('poster') or movie.get('poster_url') or '/static/posters/placeholder.jpg',
+        'poster': _resolve_poster(movie.get('poster') or movie.get('poster_url')),
+        'backdrop': _resolve_poster(movie.get('backdrop') or movie.get('poster') or movie.get('poster_url')),
         'rating': movie.get('rating') or 0,
         'year': movie.get('year') or '',
         'runtime': movie.get('runtime') or '',

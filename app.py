@@ -46,7 +46,7 @@ def _configured_origins():
     return [origin.strip() for origin in origins.split(',') if origin.strip()]
 
 
-CORS(app, resources={r"/api/*": {"origins": _configured_origins()}})
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # ============================================================
 # MongoDB Connection (optional — falls back to CSV)
@@ -838,6 +838,112 @@ def page_not_found(error):
         'title': 'Movie Not Found - MoodFlix',
         'description': 'A cinematic 404 page with a return home action.',
     }), 404
+
+
+@app.route('/api/movies', methods=['GET'])
+def api_movies():
+    query = request.args.get('search', '').strip()
+    genre = request.args.get('genre', '').strip()
+    language = request.args.get('language', '').strip()
+    year = request.args.get('year', '').strip()
+    rating = request.args.get('rating', '').strip()
+    sort_by = request.args.get('sortBy', 'rating')
+    sort_order = request.args.get('sortOrder', 'desc')
+    page = int(request.args.get('page', 1) or 1)
+    limit = int(request.args.get('limit', 20) or 20)
+
+    # rating range filter e.g. "7-8"
+    rating_min = None
+    if rating and '-' in rating:
+        parts = rating.split('-')
+        try:
+            rating_min = float(parts[0])
+        except ValueError:
+            pass
+
+    results = filter_catalog(query=query, genre=genre, language=language, year=year, actor=request.args.get('actor', '').strip())
+    if rating_min is not None:
+        results = [m for m in results if float(m.get('rating') or 0) >= rating_min]
+
+    reverse = sort_order != 'asc'
+    results = ranked_catalog(results, sort_key=sort_by if sort_by in ('rating', 'year', 'title') else 'rating', reverse=reverse)
+
+    total = len(results)
+    start = (page - 1) * limit
+    page_items = results[start:start + limit]
+
+    return jsonify({
+        'success': True,
+        'data': {
+            'movies': [movie_card(m) for m in page_items],
+            'pagination': {
+                'currentPage': page,
+                'totalPages': max((total + limit - 1) // limit, 1),
+                'totalMovies': total,
+                'limit': limit,
+                'hasPrevPage': page > 1,
+                'hasNextPage': page * limit < total,
+            }
+        }
+    })
+
+
+@app.route('/api/movies/trending', methods=['GET'])
+def api_trending():
+    limit = int(request.args.get('limit', 10))
+    items = ranked_catalog()[:limit]
+    return jsonify({'success': True, 'data': [movie_card(m) for m in items]})
+
+
+@app.route('/api/movies/<slug>', methods=['GET'])
+def api_movie_detail(slug):
+    movie = find_movie_by_slug(slug)
+    if not movie:
+        return jsonify({'success': False, 'message': 'Movie not found'}), 404
+    card = movie_card(movie)
+    card['cast'] = movie.get('cast') or []
+    card['overview'] = movie.get('overview') or ''
+    card['backdropUrl'] = movie.get('backdrop') or movie.get('poster') or ''
+    card['posterUrl'] = movie.get('poster') or ''
+    return jsonify({'success': True, 'data': card})
+
+
+@app.route('/api/movies/<slug>/trailer', methods=['GET'])
+def api_movie_trailer(slug):
+    movie = find_movie_by_slug(slug)
+    if not movie:
+        return jsonify({'success': False, 'message': 'Movie not found'}), 404
+    trailer = movie.get('trailer_url') or ''
+    embed = trailer.replace('watch?v=', 'embed/') if 'youtube.com/watch' in trailer else trailer
+    return jsonify({'success': True, 'data': {'embedUrl': embed, 'title': movie.get('title')}})
+
+
+@app.route('/api/movies/<slug>/recommendations', methods=['GET'])
+def api_movie_recommendations(slug):
+    movie = find_movie_by_slug(slug)
+    if not movie:
+        return jsonify({'success': False, 'message': 'Movie not found'}), 404
+    genres = movie.get('genres') or []
+    similar = [m for m in ranked_catalog() if m.get('id') != movie.get('id') and set(m.get('genres') or []) & set(genres)]
+    return jsonify({'success': True, 'data': [movie_card(m) for m in similar[:10]]})
+
+
+@app.route('/api/movies/mood/<mood>', methods=['GET'])
+def api_mood_movies(mood):
+    recs = engine.get_recommendations(mood, top_n=20)
+    items = []
+    for _, row in recs.iterrows():
+        items.append({
+            'id': row.get('id'),
+            'slug': slugify(row.get('title')),
+            'title': row.get('title'),
+            'poster': row.get('poster_url'),
+            'posterUrl': row.get('poster_url'),
+            'rating': row.get('match_score') or 0,
+            'genres': [g.strip() for g in str(row.get('genres') or '').split(',') if g.strip()],
+            'overview': row.get('overview'),
+        })
+    return jsonify({'success': True, 'data': items})
 
 
 @app.route('/api/recommend', methods=['POST'])

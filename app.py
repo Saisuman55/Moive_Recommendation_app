@@ -100,7 +100,8 @@ def load_runtime_data():
         raise
 
     catalog = load_catalog()
-    engine = MoodRecommender(movies, ratings)
+    # Use only top 300 movies for faster engine startup
+    engine = MoodRecommender(movies.head(300), ratings)
     engine.fit()
     DATA_SIGNATURE = _current_signature()
 
@@ -503,6 +504,11 @@ def detail_page_data(movie):
 # ============================================================
 # Routes
 # ============================================================
+
+@app.route('/ping')
+def ping():
+    return 'ok', 200
+
 
 @app.route('/')
 def home():

@@ -11,17 +11,30 @@ Collections:
   - sessions: Active authentication sessions
   - model_metadata: Deployed ML model information
 """
-import os
 from datetime import datetime, timedelta
 from bson import ObjectId
-import hashlib
 
 
 def hash_password(password: str) -> str:
-    """Hash password using SHA256 with a random salt. Use bcrypt in production."""
-    salt = os.urandom(16).hex()
-    digest = hashlib.sha256((salt + password).encode()).hexdigest()
-    return f"{salt}:{digest}"
+    """Hash a password with bcrypt."""
+    if not isinstance(password, str) or not password:
+        raise ValueError("password is required")
+    try:
+        import bcrypt
+    except ImportError as exc:
+        raise RuntimeError("bcrypt is required for password hashing") from exc
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify a password against a bcrypt hash."""
+    if not password or not password_hash:
+        return False
+    try:
+        import bcrypt
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    except (ImportError, ValueError):
+        return False
 
 
 class User:

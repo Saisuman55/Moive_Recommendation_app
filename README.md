@@ -113,9 +113,13 @@ pip install -r requirements.txt
 The app runs without MongoDB by using local CSV files. To enable MongoDB-backed user data, create a `.env` file:
 
 ```env
+CORS_ORIGINS=http://localhost:5001,http://127.0.0.1:5001,http://localhost:3000,http://127.0.0.1:3000
+ADMIN_TOKEN=change_this_admin_token
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/mood_app
 MONGODB_DB=mood_app
 ```
+
+`ADMIN_TOKEN` protects `/admin`. If it is not set, the admin page returns `404` and stays disabled.
 
 For the TMDb catalog pipeline:
 

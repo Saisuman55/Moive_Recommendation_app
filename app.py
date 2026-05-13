@@ -36,7 +36,17 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
-CORS(app)
+
+
+def _configured_origins():
+    origins = os.getenv(
+        'CORS_ORIGINS',
+        'http://localhost:5001,http://127.0.0.1:5001,http://localhost:3000,http://127.0.0.1:3000'
+    )
+    return [origin.strip() for origin in origins.split(',') if origin.strip()]
+
+
+CORS(app, resources={r"/api/*": {"origins": _configured_origins()}})
 
 # ============================================================
 # MongoDB Connection (optional — falls back to CSV)
@@ -182,7 +192,13 @@ def movie_card(movie):
 
 def ranked_catalog(items=None, sort_key='rating', reverse=True):
     source = items if items is not None else catalog
-    return sorted(source, key=lambda item: float(item.get(sort_key) or 0), reverse=reverse)
+    def sort_value(item):
+        try:
+            return float(item.get(sort_key) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    return sorted(source, key=sort_value, reverse=reverse)
 
 
 def paginate(items, page=1, per_page=10):
@@ -778,6 +794,11 @@ def subscription_page():
 
 @app.route('/admin')
 def admin_page():
+    admin_token = os.getenv('ADMIN_TOKEN')
+    provided_token = request.headers.get('X-Admin-Token') or request.args.get('admin_token')
+    if not admin_token or provided_token != admin_token:
+        abort(404)
+
     return render_template('cinematic_page.html', page={
         'title': 'Admin Dashboard - MoodFlix',
         'description': 'Movie management, analytics, recommendation controls, and model monitoring.',
@@ -933,7 +954,10 @@ def record_mood_scan():
     # Add userId if provided
     user_id = data.get('userId')
     if user_id:
-        scan['userId'] = user_id
+        try:
+            scan['userId'] = ObjectId(user_id)
+        except Exception:
+            return jsonify({'error': 'Invalid userId'}), 400
 
     result = db['mood_scans'].insert_one(scan)
     return jsonify({

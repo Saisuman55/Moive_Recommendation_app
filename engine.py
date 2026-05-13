@@ -20,6 +20,10 @@ class MoodRecommender:
         self.movie_indices = pd.Series(
             self.movies.index, index=self.movies['id']
         ).drop_duplicates()
+        self.movie_index_lookup = {}
+        for movie_id, idx in self.movie_indices.items():
+            self.movie_index_lookup[movie_id] = idx
+            self.movie_index_lookup[str(movie_id)] = idx
 
         # Curated Mood -> Genre mapping
         self.mood_map = {
@@ -78,8 +82,13 @@ class MoodRecommender:
                 (self.ratings['user_id'] == user_id) &
                 (self.ratings['rating'] >= 4)
             ]['movie_id'].tolist()
-            liked_idx = [self.movie_indices[m] for m in liked
-                        if m in self.movie_indices.index]
+            liked_idx = [
+                idx for idx in (
+                    self.movie_index_lookup.get(m, self.movie_index_lookup.get(str(m)))
+                    for m in liked
+                )
+                if idx is not None
+            ]
             if liked_idx:
                 for idx in c_indices:
                     scores[idx] += self.cosine_sim[idx, liked_idx].mean() * 0.25

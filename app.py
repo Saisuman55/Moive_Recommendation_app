@@ -195,6 +195,7 @@ def movie_card(movie):
         'backdropUrl': _resolve_poster(movie.get('backdrop') or movie.get('poster') or movie.get('poster_url')),
         'rating': movie.get('rating') or 0,
         'year': movie.get('year') or '',
+        'releaseDate': movie.get('year') or '',
         'runtime': movie.get('runtime') or '',
         'overview': movie.get('overview') or '',
         'genres': genres,
@@ -923,8 +924,21 @@ def api_movie_detail(slug):
     card = movie_card(movie)
     card['cast'] = movie.get('cast') or []
     card['overview'] = movie.get('overview') or ''
-    card['backdropUrl'] = movie.get('backdrop') or movie.get('poster') or ''
-    card['posterUrl'] = movie.get('poster') or ''
+    card['backdropUrl'] = card.get('backdrop') or card.get('poster') or ''
+    card['posterUrl'] = card.get('poster') or ''
+    card['releaseDate'] = movie.get('year') or ''
+    card['trailerUrl'] = movie.get('trailer_url') or ''
+    card['tagline'] = movie.get('tagline') or ''
+    card['director'] = movie.get('director') or ''
+    card['language'] = movie.get('language') or ''
+    # resolve cast image URLs
+    cast = []
+    for m in (movie.get('cast') or []):
+        img = m.get('image') or m.get('profile_path') or ''
+        if img and not img.startswith('http') and img.startswith('/'):
+            img = f'https://image.tmdb.org/t/p/w185{img}'
+        cast.append({'name': m.get('name',''), 'character': m.get('character',''), 'image': img})
+    card['cast'] = cast
     return jsonify({'success': True, 'data': card})
 
 

@@ -12,6 +12,7 @@ const RecommendedMovies = ({ movieId }) => {
 
   useEffect(() => {
     fetchRecommendations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movieId]);
 
   const fetchRecommendations = async () => {

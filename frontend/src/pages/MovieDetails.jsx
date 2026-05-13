@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Star, Calendar, Clock, Globe, Film, Heart, Share2,
-  Play, X, ChevronLeft, ChevronRight, Users, DollarSign,
-  TrendingUp, Award
+  Play, DollarSign, TrendingUp, Award
 } from 'lucide-react';
 import useStore from '../store/useStore';
 import { movieAPI } from '../lib/api';
@@ -31,6 +30,7 @@ const MovieDetails = () => {
 
   useEffect(() => {
     fetchMovieDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   const fetchMovieDetails = async () => {

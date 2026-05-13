@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Trash2, Clock } from 'lucide-react';
+import { Heart, Trash2 } from 'lucide-react';
 import MovieCard from '../components/MovieCard';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import MovieCard from '../components/MovieCard';
 import useStore from '../store/useStore';
 import { movieAPI } from '../lib/api';
@@ -24,6 +24,7 @@ const MovieListing = () => {
 
   useEffect(() => {
     fetchMovies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.currentPage, filters]);
 
   const fetchMovies = async () => {

@@ -127,6 +127,18 @@ def slugify(value):
     return value.strip('-') or 'movie'
 
 
+def _resolve_poster(path):
+    if not path:
+        return 'https://via.placeholder.com/300x450?text=No+Poster'
+    if path.startswith('http'):
+        return path
+    filename = path.split('/')[-1]
+    parts = filename.replace('.jpg', '').split('_', 1)
+    if len(parts) == 2:
+        return f'https://image.tmdb.org/t/p/w500/{parts[1]}.jpg'
+    return 'https://via.placeholder.com/300x450?text=No+Poster'
+
+
 def load_catalog():
     try:
         with open(CATALOG_PATH, 'r', encoding='utf-8') as handle:
@@ -165,20 +177,6 @@ load_runtime_data()
 @app.before_request
 def refresh_movie_data_if_needed():
     reload_runtime_data_if_needed()
-
-
-def _resolve_poster(path):
-    if not path:
-        return 'https://via.placeholder.com/300x450?text=No+Poster'
-    if path.startswith('http'):
-        return path
-    # local /static/posters/ path — convert to TMDB URL using filename
-    filename = path.split('/')[-1]
-    # filename format: {movie_id}_{tmdb_key}.jpg
-    parts = filename.replace('.jpg', '').split('_', 1)
-    if len(parts) == 2:
-        return f'https://image.tmdb.org/t/p/w500/{parts[1]}.jpg'
-    return 'https://via.placeholder.com/300x450?text=No+Poster'
 
 
 def movie_card(movie):

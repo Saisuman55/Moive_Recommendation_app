@@ -1,0 +1,9 @@
+{
+  "n_movies": 30,
+  "n_ratings": 150,
+  "n_users": 10,
+  "max_features": 500,
+  "svd_components": 50,
+  "training_time_seconds": 0.01,
+  "hit_ratio_at_10": null
+}

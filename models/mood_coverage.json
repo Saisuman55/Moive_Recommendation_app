@@ -1,0 +1,34 @@
+{
+  "happy": {
+    "count": 16,
+    "percentage": 53.3
+  },
+  "sad": {
+    "count": 18,
+    "percentage": 60.0
+  },
+  "excited": {
+    "count": 18,
+    "percentage": 60.0
+  },
+  "chill": {
+    "count": 23,
+    "percentage": 76.7
+  },
+  "romantic": {
+    "count": 23,
+    "percentage": 76.7
+  },
+  "angry": {
+    "count": 12,
+    "percentage": 40.0
+  },
+  "scared": {
+    "count": 9,
+    "percentage": 30.0
+  },
+  "nostalgic": {
+    "count": 21,
+    "percentage": 70.0
+  }
+}

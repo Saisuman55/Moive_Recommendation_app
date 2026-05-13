@@ -1,0 +1,413 @@
+// ═══════════════════════════════════════════════════════════════
+// Prisma Schema — AI Mood Scanner OTT Platform
+// ═══════════════════════════════════════════════════════════════
+// Usage: npx prisma generate && npx prisma migrate dev
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ───
+enum UserRole {
+  free
+  premium
+  admin
+}
+
+enum SubscriptionTier {
+  none
+  basic
+  standard
+  premium
+}
+
+enum ContentType {
+  movie
+  series
+  documentary
+  short
+}
+
+enum ScanStatus {
+  pending
+  completed
+  failed
+  skipped
+}
+
+enum DeviceType {
+  web
+  ios
+  android
+  tv
+  unknown
+}
+
+enum GenerationMethod {
+  mood_ai
+  collaborative
+  content_based
+  trending
+  editorial
+}
+
+// ─── MOODS ───
+model Mood {
+  moodId      Int     @id @default(autoincrement()) @map("mood_id")
+  moodName    String  @unique @map("mood_name") @db.VarChar(20)
+  emoji       String  @db.VarChar(10)
+  description String?
+  colorHex    String? @default("#00f3ff") @map("color_hex") @db.VarChar(7)
+  isActive    Boolean @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  primaryForContent Content[] @relation("PrimaryMood")
+  moodScans         MoodScan[] @relation("DetectedMood")
+  correctedScans    MoodScan[] @relation("CorrectedMood")
+  timelineEntries   MoodTimeline[]
+  genreWeights      MoodGenreWeight[]
+
+  @@map("moods")
+}
+
+// ─── GENRES ───
+model Genre {
+  genreId     Int     @id @default(autoincrement()) @map("genre_id")
+  genreName   String  @unique @map("genre_name") @db.VarChar(40)
+  slug        String  @unique @db.VarChar(40)
+  description String?
+  iconUrl     String? @map("icon_url")
+  isActive    Boolean @default(true) @map("is_active")
+
+  // Relations
+  contentGenres ContentGenre[]
+  moodWeights   MoodGenreWeight[]
+
+  @@map("genres")
+}
+
+// ─── MOOD-GENRE WEIGHTS ───
+model MoodGenreWeight {
+  mappingId  Int     @id @default(autoincrement()) @map("mapping_id")
+  moodId     Int     @map("mood_id")
+  genreId    Int     @map("genre_id")
+  weight     Decimal @db.Decimal(3, 2)
+  isPrimary  Boolean @default(false) @map("is_primary")
+
+  mood  Mood  @relation(fields: [moodId], references: [moodId], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [genreId], onDelete: Cascade)
+
+  @@unique([moodId, genreId])
+  @@map("mood_genre_weights")
+}
+
+// ─── USERS ───
+model User {
+  userId              String   @id @default(uuid()) @map("user_id") @db.Uuid
+  email               String   @unique @db.Citext
+  emailHash           String   @map("email_hash")
+  displayName         String?  @map("display_name") @db.VarChar(50)
+  avatarUrl           String?  @map("avatar_url")
+  role                UserRole @default(free)
+  subscription        SubscriptionTier @default(none)
+
+  // Privacy & Consent
+  cameraConsent       Boolean  @default(false) @map("camera_consent")
+  consentDate         DateTime? @map("consent_date") @db.Timestamptz()
+  dataRetentionDays   Int      @default(30) @map("data_retention_days")
+  allowDataTraining   Boolean  @default(false) @map("allow_data_training")
+
+  // Preferences (stored as JSON for flexibility)
+  preferredLanguages  String[] @default(["en"]) @map("preferred_languages")
+  contentRatings      String[] @default(["G", "PG", "PG-13", "R"]) @map("content_ratings")
+  autoplayEnabled     Boolean  @default(true) @map("autoplay_enabled")
+  subtitlesDefault    Boolean  @default(false) @map("subtitles_default")
+
+  // Security
+  lastLoginAt         DateTime? @map("last_login_at") @db.Timestamptz()
+  lastLoginIp         String?   @map("last_login_ip") @db.Inet
+  failedLogins        Int       @default(0) @map("failed_logins")
+  lockedUntil         DateTime? @map("locked_until") @db.Timestamptz()
+
+  // Timestamps
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  preferences       UserPreference?
+  moodScans         MoodScan[]
+  watchHistory      WatchHistory[]
+  ratings           UserRating[]
+  recommendations   Recommendation[]
+  moodTimeline      MoodTimeline[]
+  sessions          UserSession[]
+
+  @@index([email])
+  @@index([subscription])
+  @@map("users")
+}
+
+// ─── USER PREFERENCES ───
+model UserPreference {
+  preferenceId        String   @id @default(uuid()) @map("preference_id") @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+
+  preferredMoods      Int[]    @default([]) @map("preferred_moods")
+  avoidedMoods        Int[]    @default([]) @map("avoided_moods")
+  likedGenres         Int[]    @default([]) @map("liked_genres")
+  dislikedGenres      Int[]    @default([]) @map("disliked_genres")
+  likedActors         String[] @default([]) @map("liked_actors")
+  likedDirectors      String[] @default([]) @map("liked_directors")
+  peakUsageHour       Int?     @map("peak_usage_hour")
+  weekendGenreBias    Int[]    @default([]) @map("weekend_genre_bias")
+  emotionBaseline     Json?    @map("emotion_baseline")
+
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// ─── CONTENT ───
+model Content {
+  contentId         String   @id @default(uuid()) @map("content_id") @db.Uuid
+  title             String   @db.VarChar(200)
+  slug              String   @unique @db.VarChar(220)
+  originalTitle     String?  @map("original_title") @db.VarChar(200)
+  synopsis          String?  @db.Text
+  tagline           String?  @db.VarChar(300)
+
+  contentType       ContentType @map("content_type")
+  releaseYear       Int?     @map("release_year")
+  runtimeMinutes    Int?     @map("runtime_minutes")
+  rating            String?  @db.VarChar(10)
+
+  // Mood tagging
+  primaryMoodId     Int?     @map("primary_mood_id")
+  moodTags          Int[]    @default([]) @map("mood_tags")
+  moodConfidence    Decimal? @default("0.00") @map("mood_confidence") @db.Decimal(3, 2)
+
+  // Media
+  posterUrl         String?  @map("poster_url")
+  backdropUrl       String?  @map("backdrop_url")
+  trailerUrl        String?  @map("trailer_url")
+  videoUrl          String?  @map("video_url")
+
+  // Cast & Crew (JSON for flexibility)
+  cast              Json?    @default("[]")
+  directors         Json?    @default("[]")
+
+  // Technical
+  videoQuality      String[] @default(["HD", "4K"]) @map("video_quality")
+  audioLanguages    String[] @default(["en"]) @map("audio_languages")
+  subtitleLanguages String[] @default(["en"]) @map("subtitle_languages")
+
+  // Engagement
+  avgRating         Decimal? @default("0.0") @map("avg_rating") @db.Decimal(2, 1)
+  ratingCount       Int      @default(0) @map("rating_count")
+  viewCount         Int      @default(0) @map("view_count")
+
+  // Availability
+  isActive          Boolean  @default(true) @map("is_active")
+  availableFrom     DateTime? @map("available_from") @db.Date
+  availableUntil    DateTime? @map("available_until") @db.Date
+  regionRestrictions String[] @default([]) @map("region_restrictions")
+
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  primaryMood       Mood?    @relation("PrimaryMood", fields: [primaryMoodId], references: [moodId])
+  contentGenres     ContentGenre[]
+  watchHistory      WatchHistory[]
+  ratings           UserRating[]
+  recommendations   Recommendation[]
+
+  @@index([primaryMoodId, isActive, avgRating])
+  @@index([moodTags])
+  @@index([releaseYear, isActive])
+  @@index([avgRating, isActive])
+  @@map("content")
+}
+
+// ─── CONTENT-GENRE JUNCTION ───
+model ContentGenre {
+  contentId  String  @map("content_id") @db.Uuid
+  genreId    Int     @map("genre_id")
+  isPrimary  Boolean @default(false) @map("is_primary")
+
+  content Content @relation(fields: [contentId], references: [contentId], onDelete: Cascade)
+  genre   Genre   @relation(fields: [genreId], references: [genreId], onDelete: Cascade)
+
+  @@id([contentId, genreId])
+  @@map("content_genres")
+}
+
+// ─── MOOD SCANS ───
+model MoodScan {
+  scanId            String   @id @default(uuid()) @map("scan_id") @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  detectedMoodId    Int      @map("detected_mood_id")
+  confidence        Decimal  @map("confidence") @db.Decimal(5, 2)
+
+  // Secondary predictions
+  secondaryMood1Id  Int?     @map("secondary_mood_1_id")
+  secondaryConf1    Decimal? @map("secondary_conf_1") @db.Decimal(5, 2)
+  secondaryMood2Id  Int?     @map("secondary_mood_2_id")
+  secondaryConf2    Decimal? @map("secondary_conf_2") @db.Decimal(5, 2)
+
+  // Technical metadata
+  deviceType        DeviceType @default(unknown) @map("device_type")
+  lightingScore     Decimal? @map("lighting_score") @db.Decimal(3, 2)
+  faceCount         Int      @default(1) @map("face_count")
+  processingTimeMs  Int?     @map("processing_time_ms")
+  modelVersion      String   @default("v1.0.0") @map("model_version") @db.VarChar(20)
+
+  // User feedback
+  userCorrectedMoodId Int?   @map("user_corrected_mood_id")
+  wasAccurate       Boolean? @map("was_accurate")
+
+  // Status
+  status            ScanStatus @default(completed)
+  errorMessage      String?  @map("error_message") @db.Text
+
+  // Timestamps
+  scannedAt         DateTime @default(now()) @map("scanned_at") @db.Timestamptz()
+  expiresAt         DateTime @default(dbgenerated("NOW() + INTERVAL '30 days'")) @map("expires_at") @db.Timestamptz()
+
+  // Relations
+  user              User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  detectedMood      Mood     @relation("DetectedMood", fields: [detectedMoodId], references: [moodId])
+  correctedMood     Mood?    @relation("CorrectedMood", fields: [userCorrectedMoodId], references: [moodId])
+  watchHistory      WatchHistory[]
+  recommendations   Recommendation[]
+
+  @@index([userId, scannedAt])
+  @@index([detectedMoodId, status])
+  @@index([expiresAt])
+  @@index([wasAccurate])
+  @@map("mood_scans")
+}
+
+// ─── WATCH HISTORY ───
+model WatchHistory {
+  historyId       String   @id @default(uuid()) @map("history_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  contentId       String   @map("content_id") @db.Uuid
+
+  progressSeconds Int      @default(0) @map("progress_seconds")
+  totalSeconds    Int      @map("total_seconds")
+  completionPct   Decimal  @default("0.00") @map("completion_pct") @db.Decimal(5, 2)
+  isCompleted     Boolean  @default(false) @map("is_completed")
+
+  watchedAt       DateTime @default(now()) @map("watched_at") @db.Timestamptz()
+  deviceType      DeviceType @default(unknown) @map("device_type")
+
+  associatedMoodScanId String? @map("associated_mood_scan_id") @db.Uuid
+  pausedCount     Int      @default(0) @map("paused_count")
+  rewindCount     Int      @default(0) @map("rewind_count")
+
+  user    User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  content Content  @relation(fields: [contentId], references: [contentId], onDelete: Cascade)
+  moodScan MoodScan? @relation(fields: [associatedMoodScanId], references: [scanId])
+
+  @@unique([userId, contentId])
+  @@index([userId, watchedAt])
+  @@index([contentId])
+  @@map("watch_history")
+}
+
+// ─── USER RATINGS ───
+model UserRating {
+  ratingId      String   @id @default(uuid()) @map("rating_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  contentId     String   @map("content_id") @db.Uuid
+  score         Decimal  @map("score") @db.Decimal(2, 1)
+  reviewText    String?  @map("review_text") @db.Text
+  containsSpoiler Boolean @default(false) @map("contains_spoiler")
+  ratedAt       DateTime @default(now()) @map("rated_at") @db.Timestamptz()
+
+  user    User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [contentId], onDelete: Cascade)
+
+  @@unique([userId, contentId])
+  @@map("user_ratings")
+}
+
+// ─── RECOMMENDATIONS ───
+model Recommendation {
+  recommendationId String   @id @default(uuid()) @map("recommendation_id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  sourceMoodScanId String?  @map("source_mood_scan_id") @db.Uuid
+  generationMethod GenerationMethod @default(mood_ai) @map("generation_method")
+
+  contentId        String   @map("content_id") @db.Uuid
+  matchScore       Decimal  @map("match_score") @db.Decimal(5, 2)
+  matchReason      String?  @map("match_reason") @db.Text
+
+  wasShown         Boolean  @default(false) @map("was_shown")
+  wasClicked       Boolean  @default(false) @map("was_clicked")
+  wasWatched       Boolean  @default(false) @map("was_watched")
+  dismissedAt      DateTime? @map("dismissed_at") @db.Timestamptz()
+
+  expiresAt        DateTime @default(dbgenerated("NOW() + INTERVAL '7 days'")) @map("expires_at") @db.Timestamptz()
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user     User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  moodScan MoodScan? @relation(fields: [sourceMoodScanId], references: [scanId])
+  content  Content  @relation(fields: [contentId], references: [contentId], onDelete: Cascade)
+
+  @@unique([userId, contentId, sourceMoodScanId])
+  @@index([userId, createdAt])
+  @@index([userId, wasShown, expiresAt])
+  @@map("recommendations")
+}
+
+// ─── MOOD TIMELINE ───
+model MoodTimeline {
+  timelineId     String   @id @default(uuid()) @map("timeline_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  scanId         String   @map("scan_id") @db.Uuid
+
+  date           DateTime @db.Date
+  dominantMoodId Int      @map("dominant_mood_id")
+  moodVariety    Int      @default(1) @map("mood_variety")
+  avgConfidence  Decimal? @map("avg_confidence") @db.Decimal(5, 2)
+  scanCount      Int      @default(1) @map("scan_count")
+  moodTrend      String?  @db.VarChar(10)
+
+  user         User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  dominantMood Mood @relation(fields: [dominantMoodId], references: [moodId])
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("mood_timeline")
+}
+
+// ─── USER SESSIONS ───
+model UserSession {
+  sessionId         String   @id @default(uuid()) @map("session_id") @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  deviceFingerprint String?  @map("device_fingerprint")
+  deviceType        DeviceType @default(unknown) @map("device_type")
+  ipAddress         String?  @map("ip_address") @db.Inet
+  userAgent         String?  @map("user_agent")
+
+  startedAt         DateTime @default(now()) @map("started_at") @db.Timestamptz()
+  endedAt           DateTime? @map("ended_at") @db.Timestamptz()
+  isActive          Boolean  @default(true) @map("is_active")
+  scansCount        Int      @default(0) @map("scans_count")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("user_sessions")
+}

@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Mood Scanner | MoodFlix</title>
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-pink: #ff006e;
+            --neon-green: #39ff14;
+            --dark-bg: #020204;
+            --panel-bg: rgba(10, 12, 20, 0.65);
+            --glass-border: rgba(0, 243, 255, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #0a0a15 50%, #15000a 100%);
+            color: var(--text-primary);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Background starfield */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #app {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Glass effect */
+        .glass {
+            background: var(--panel-bg);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                0 0 40px rgba(0, 243, 255, 0.05);
+            border-radius: 20px;
+        }
+
+        .glass-strong {
+            background: rgba(5, 7, 15, 0.85);
+            backdrop-filter: blur(40px) saturate(200%);
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            box-shadow: 
+                0 0 60px rgba(0, 243, 255, 0.1),
+                0 0 120px rgba(188, 19, 254, 0.05);
+        }
+
+        /* ─── Intro Screen ─── */
+        .intro-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        .intro-screen.hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        .intro-logo {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .intro-tagline {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            letter-spacing: 2px;
+        }
+
+        /* ─── Permission Modal ─── */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .permission-modal {
+            max-width: 480px;
+            padding: 3rem;
+            border-radius: 24px;
+            text-align: center;
+            animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .camera-icon-wrap {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 2rem;
+        }
+
+        .camera-icon {
+            width: 100%;
+            height: 100%;
+            color: var(--neon-cyan);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .modal-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .privacy-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: var(--neon-cyan);
+        }
+
+        .privacy-badge svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* ─── Buttons ─── */
+        .btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            color: var(--dark-bg);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 60px rgba(0, 243, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+            width: 100%;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ─── Calibration Screen ─── */
+        .calibrate-screen {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .calibrate-screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .loader-ring {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0, 243, 255, 0.2);
+            border-top: 4px solid var(--neon-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .calibrate-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--neon-cyan);
+        }
+
+        .calibrate-subtext {
+            color: var(--text-secondary);
+        }
+
+        /* ─── Scanner Container ─── */
+        .scanner-container {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 120;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .scanner-container.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .video-wrapper {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        #cameraVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror effect */
+        }
+
+        #cameraCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ─── HUD Overlay ─── */
+        .hud-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+            pointer-events: none;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hud-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--neon-cyan);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hud-close {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+        }
+
+        .hud-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .hud-bottom {
+            display: flex;
+            justify-content: center;
+        }
+
+        .hud-instruction {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        /* ─── Emotion Panel ─── */
+        .emotion-panel {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            max-width: 300px;
+            padding: 1.5rem;
+            border-radius: 16px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .emotion-panel.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .emotion-panel-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--neon-cyan);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #emotionList {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .emotion-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .emotion-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .emotion-bar-bg {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .emotion-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.2s ease;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        /* ─── Confidence Ring ─── */
+        .confidence-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 140px;
+            height: 140px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .confidence-ring.active {
+            opacity: 1;
+        }
+
+        .confidence-ring svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .confidence-ring .track {
+            fill: none;
+            stroke: rgba(0, 243, 255, 0.1);
+            stroke-width: 3;
+        }
+
+        .confidence-ring .progress {
+            fill: none;
+            stroke: url(#confidenceGradient);
+            stroke-width: 3;
+            stroke-dasharray: 377;
+            stroke-dashoffset: 377;
+            transition: stroke-dashoffset 0.2s ease;
+            stroke-linecap: round;
+        }
+
+        .confidence-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .confidence-percent {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+        }
+
+        .confidence-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.25rem;
+        }
+
+        /* ─── Result Screen ─── */
+        .result-screen {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 130;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .result-screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .result-card {
+            max-width: 500px;
+            padding: 3rem;
+            border-radius: 24px;
+            text-align: center;
+            animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .result-avatar {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+        }
+
+        .result-avatar-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid var(--neon-cyan);
+            border-radius: 50%;
+            animation: spin 3s linear infinite;
+            opacity: 0.5;
+        }
+
+        #resultEmoji {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+        }
+
+        #resultMood {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+
+        .result-tagline {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.5rem;
+        }
+
+        .result-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* ─── Error Screen ─── */
+        .error-screen {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 140;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .error-screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--neon-pink);
+        }
+
+        .error-message {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 768px) {
+            .permission-modal {
+                max-width: 90vw;
+                padding: 2rem;
+            }
+
+            .emotion-panel {
+                max-width: 250px;
+                bottom: 1rem;
+                right: 1rem;
+            }
+
+            #resultMood {
+                font-size: 2rem;
+            }
+
+            .result-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .hud-overlay {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Starfield Background -->
+    <canvas id="starfield"></canvas>
+
+    <!-- App Container -->
+    <div id="app">
+        <!-- Intro Screen -->
+        <div class="intro-screen" id="introScreen">
+            <div class="intro-logo">NEURAL MOOD</div>
+            <div class="intro-tagline">AI Emotion Detection System</div>
+        </div>
+
+        <!-- Permission Modal -->
+        <div class="modal-overlay" id="permissionModal">
+            <div class="permission-modal glass-strong">
+                <div class="camera-icon-wrap">
+                    <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                </div>
+                <h2 class="modal-title">Camera Access Required</h2>
+                <p class="modal-subtitle">
+                    Enable your camera to let our AI detect your emotional state and find personalized movie recommendations based on your mood.
+                </p>
+                <div class="privacy-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    <span>Privacy Safe — Local Processing Only</span>
+                </div>
+                <button class="btn btn-primary" id="enableCameraBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                    Enable Camera
+                </button>
+                <button class="btn btn-secondary" id="skipBtn">Skip for Now</button>
+            </div>
+        </div>
+
+        <!-- Calibration Screen -->
+        <div class="calibrate-screen" id="calibrateScreen">
+            <div class="loader-ring"></div>
+            <div class="calibrate-text">Initializing AI</div>
+            <div class="calibrate-subtext" id="calibrateSubtext">Loading emotion detection models...</div>
+        </div>
+
+        <!-- Scanner Container -->
+        <div class="scanner-container" id="scannerContainer">
+            <div class="video-wrapper">
+                <video id="cameraVideo" autoplay playsinline muted></video>
+                <canvas id="cameraCanvas"></canvas>
+            </div>
+
+            <!-- HUD Overlay -->
+            <div class="hud-overlay">
+                <div class="hud-top">
+                    <div class="hud-status">
+                        <div class="status-dot"></div>
+                        <span>AI Active</span>
+                    </div>
+                    <button class="hud-close" id="closeScanner">&times;</button>
+                </div>
+
+                <!-- Confidence Ring -->
+                <div class="confidence-ring" id="confidenceRing">
+                    <svg viewBox="0 0 140 140">
+                        <defs>
+                            <linearGradient id="confidenceGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#00f3ff"/>
+                                <stop offset="100%" style="stop-color:#bc13fe"/>
+                            </linearGradient>
+                        </defs>
+                        <circle class="track" cx="70" cy="70" r="60"/>
+                        <circle class="progress" id="confidenceProgress" cx="70" cy="70" r="60"/>
+                    </svg>
+                    <div class="confidence-text">
+                        <div class="confidence-percent" id="confidencePercent">0%</div>
+                        <div class="confidence-label">Confidence</div>
+                    </div>
+                </div>
+
+                <!-- Emotion Panel -->
+                <div class="emotion-panel glass" id="emotionPanel">
+                    <div class="emotion-panel-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+                        </svg>
+                        Emotions
+                    </div>
+                    <div id="emotionList">
+                        <div class="emotion-item" data-emotion="happy">
+                            <div class="emotion-label">
+                                <span class="emotion-name">Happy</span>
+                                <span class="emotion-value" id="val-happy">0%</span>
+                            </div>
+                            <div class="emotion-bar-bg">
+                                <div class="emotion-bar-fill" id="bar-happy"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-item" data-emotion="sad">
+                            <div class="emotion-label">
+                                <span class="emotion-name">Sad</span>
+                                <span class="emotion-value" id="val-sad">0%</span>
+                            </div>
+                            <div class="emotion-bar-bg">
+                                <div class="emotion-bar-fill" id="bar-sad"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-item" data-emotion="angry">
+                            <div class="emotion-label">
+                                <span class="emotion-name">Angry</span>
+                                <span class="emotion-value" id="val-angry">0%</span>
+                            </div>
+                            <div class="emotion-bar-bg">
+                                <div class="emotion-bar-fill" id="bar-angry"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-item" data-emotion="excited">
+                            <div class="emotion-label">
+                                <span class="emotion-name">Excited</span>
+                                <span class="emotion-value" id="val-excited">0%</span>
+                            </div>
+                            <div class="emotion-bar-bg">
+                                <div class="emotion-bar-fill" id="bar-excited"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-item" data-emotion="relaxed">
+                            <div class="emotion-label">
+                                <span class="emotion-name">Relaxed</span>
+                                <span class="emotion-value" id="val-relaxed">0%</span>
+                            </div>
+                            <div class="emotion-bar-bg">
+                                <div class="emotion-bar-fill" id="bar-relaxed"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hud-bottom">
+                    <div class="hud-instruction" id="hudInstruction">Position your face in the frame</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Screen -->
+        <div class="result-screen" id="resultScreen">
+            <div class="result-card glass-strong">
+                <div class="result-avatar">
+                    <div class="result-avatar-ring"></div>
+                    <span id="resultEmoji">🎭</span>
+                </div>
+                <h1 id="resultMood">DETECTING...</h1>
+                <p class="result-tagline" id="resultTagline">Analysis in progress...</p>
+
+                <div class="result-stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="statConfidence">0%</div>
+                        <div class="stat-label">Confidence</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statTime">0.0s</div>
+                        <div class="stat-label">Analysis Time</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">AI ✓</div>
+                        <div class="stat-label">Detection</div>
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <button class="btn btn-primary" id="continueBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        View Recommendations
+                    </button>
+                    <button class="btn btn-secondary" id="rescanBtn">Rescan Mood</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Screen -->
+        <div class="error-screen" id="errorScreen">
+            <div class="glass-strong" style="padding: 48px; border-radius: 24px; text-align: center; max-width: 420px;">
+                <div class="error-icon">⚠️</div>
+                <h2 class="error-title">Camera Access Denied</h2>
+                <p class="error-message" id="errorMessage">
+                    We need camera access to analyze your mood. Please allow camera permissions in your browser settings.
+                </p>
+                <button class="btn btn-primary" id="retryBtn">Try Again</button>
+                <button class="btn btn-secondary" id="errorSkipBtn" style="margin-top: 12px;">Continue Without Camera</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Starfield Script -->
+    <script>
+        class Starfield {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.stars = [];
+                this.resize();
+                this.initStars();
+                this.animate();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            initStars() {
+                const count = Math.floor((this.canvas.width * this.canvas.height) / 4000);
+                this.stars = [];
+                for (let i = 0; i < count; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 1.5 + 0.5,
+                        opacity: Math.random() * 0.5 + 0.5
+                    });
+                }
+            }
+
+            animate = () => {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillStyle = '#ffffff';
+
+                this.stars.forEach(star => {
+                    this.ctx.globalAlpha = star.opacity;
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    star.opacity += (Math.random() - 0.5) * 0.02;
+                    star.opacity = Math.max(0, Math.min(1, star.opacity));
+                });
+
+                this.ctx.globalAlpha = 1;
+                requestAnimationFrame(this.animate);
+            }
+        }
+
+        new Starfield(document.getElementById('starfield'));
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.min.js"></script>
+
+    <!-- Load AI Emotion Engine -->
+    <script src="/static/ai-mood-engine.js"></script>
+
+    <!-- Load Camera Mood Scanner UI -->
+    <script src="/static/camera-mood-scanner.js"></script>
+</body>
+</html>

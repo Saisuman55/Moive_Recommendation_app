@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title }}</title>
+    <meta name="description" content="{{ page.description }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07070c;
+            --bg-2: #0f1018;
+            --panel: rgba(18, 20, 31, 0.8);
+            --panel-strong: rgba(24, 26, 40, 0.95);
+            --text: #f7f8fc;
+            --muted: #9aa3b2;
+            --line: rgba(255, 255, 255, 0.08);
+            --accent: #ff4d6d;
+            --accent-2: #00d4aa;
+            --accent-3: #60a5fa;
+            --shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+            --font-head: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: var(--font-body);
+            color: var(--text);
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255, 77, 109, 0.14), transparent 32%),
+                radial-gradient(circle at 80% 10%, rgba(0, 212, 170, 0.12), transparent 26%),
+                radial-gradient(circle at 50% 90%, rgba(96, 165, 250, 0.12), transparent 28%),
+                linear-gradient(180deg, #050509 0%, var(--bg) 100%);
+            overflow-x: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: auto;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            top: -160px;
+            right: -120px;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 212, 170, 0.16), transparent 68%);
+            filter: blur(10px);
+        }
+
+        body::after {
+            bottom: -140px;
+            left: -120px;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 77, 109, 0.12), transparent 68%);
+            filter: blur(10px);
+        }
+
+        a { color: inherit; text-decoration: none; }
+        button, input, select { font: inherit; }
+
+        .shell {
+            position: relative;
+            z-index: 1;
+        }
+
+        .container {
+            width: min(1400px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 24px 0 96px;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: linear-gradient(180deg, rgba(6, 7, 11, 0.88), rgba(6, 7, 11, 0.58));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .topbar-inner {
+            width: min(1400px, calc(100% - 32px));
+            margin: 0 auto;
+            min-height: 74px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-head);
+            font-size: 18px;
+            letter-spacing: -0.02em;
+            font-weight: 700;
+        }
+
+        .brand-mark {
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(255, 77, 109, 0.22), rgba(0, 212, 170, 0.18));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 24px rgba(255, 77, 109, 0.12);
+        }
+
+        .brand-mark span {
+            font-size: 18px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            color: var(--muted);
+            background: transparent;
+            transition: all 0.25s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover,
+        .nav-links a.active,
+        .nav-links button.active {
+            color: var(--text);
+            border-color: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-pill {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text);
+        }
+
+        .hero {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 24px;
+            margin-top: 24px;
+            padding: 26px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: linear-gradient(145deg, rgba(22, 24, 34, 0.88), rgba(11, 12, 20, 0.88));
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top left, rgba(255, 77, 109, 0.12), transparent 35%),
+                radial-gradient(circle at bottom right, rgba(0, 212, 170, 0.12), transparent 30%);
+            pointer-events: none;
+        }
+
+        .hero-copy,
+        .hero-visual { position: relative; z-index: 1; }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 212, 170, 0.18);
+            background: rgba(0, 212, 170, 0.08);
+            color: #84ffdf;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin: 18px 0 12px;
+            font-family: var(--font-head);
+            font-size: clamp(40px, 5vw, 76px);
+            line-height: 0.95;
+            letter-spacing: -0.05em;
+        }
+
+        .hero p {
+            margin: 0;
+            max-width: 64ch;
+            color: var(--muted);
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 48px;
+            padding: 0 18px;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            font-weight: 700;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), #c81e4e);
+            box-shadow: 0 18px 36px rgba(255, 77, 109, 0.24);
+        }
+        .btn-secondary {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+        .btn-tertiary {
+            color: #bafdf1;
+            background: rgba(0, 212, 170, 0.08);
+            border-color: rgba(0, 212, 170, 0.18);
+        }
+
+        .hero-meta {
+            margin-top: 26px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .meta-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .meta-card strong {
+            display: block;
+            font-family: var(--font-head);
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .meta-card span { color: var(--muted); font-size: 12px; }
+
+        .hero-poster-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .hero-poster {
+            position: relative;
+            aspect-ratio: 2 / 3;
+            border-radius: 18px;
+            overflow: hidden;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .hero-poster img,
+        .movie-poster img,
+        .cast-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .hero-poster .poster-overlay {
+            position: absolute;
+            inset: auto 12px 12px 12px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: rgba(8, 10, 16, 0.72);
+            backdrop-filter: blur(14px);
+            font-size: 12px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .section {
+            margin-top: 28px;
+            padding: 24px;
+            border-radius: var(--radius-xl);
+            background: rgba(16, 18, 28, 0.78);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 18px;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-family: var(--font-head);
+            font-size: 26px;
+            letter-spacing: -0.04em;
+        }
+
+        .section-header p {
+            margin: 6px 0 0;
+            color: var(--muted);
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .section-actions a,
+        .section-actions button {
+            padding: 10px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+        }
+
+        .stat-grid,
+        .feature-grid,
+        .pricing-grid,
+        .settings-grid,
+        .notification-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .community-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .community-panel {
+            padding: 18px;
+            border-radius: 18px;
+            background: var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        }
+
+        .community-panel h3 {
+            margin: 0;
+            font-family: var(--font-head);
+            font-size: 18px;
+            letter-spacing: -0.02em;
+        }
+
+        .community-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .community-panel-header span,
+        .community-item .subtle {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .community-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .community-browser {
+            display: grid;
+            grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .community-user-list {
+            display: grid;
+            gap: 10px;
+            max-height: 680px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .community-user-card {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .community-user-card:hover,
+        .community-user-card.active {
+            transform: translateY(-1px);
+            border-color: rgba(0, 212, 170, 0.28);
+            background: rgba(0, 212, 170, 0.06);
+        }
+
+        .community-user-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .community-user-card-head strong {
+            font-family: var(--font-head);
+            font-size: 14px;
+        }
+
+        .community-user-card .mini {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .community-profile {
+            display: grid;
+            gap: 14px;
+        }
+
+        .community-profile-hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(255, 77, 109, 0.12), rgba(0, 212, 170, 0.08));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .community-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            overflow: hidden;
+            flex: 0 0 auto;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .community-profile-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .community-profile-copy h3 {
+            margin: 0 0 4px;
+            font-family: var(--font-head);
+            font-size: 24px;
+        }
+
+        .community-profile-copy p,
+        .community-profile-card p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .community-profile-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .community-profile-card {
+            padding: 18px;
+            border-radius: 18px;
+            background: var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .community-profile-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .profile-stat {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .profile-stat strong {
+            display: block;
+            font-family: var(--font-head);
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .community-review-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .community-review-item {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .community-review-item-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .community-review-item-head strong {
+            font-family: var(--font-head);
+            font-size: 14px;
+        }
+
+        .community-review-item p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .community-item {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .community-item-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .community-item-head strong {
+            font-family: var(--font-head);
+            font-size: 14px;
+        }
+
+        .community-item p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .community-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .community-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .feature-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .pricing-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .setting-copy {
+            min-width: 0;
+        }
+
+        .setting-copy h3 {
+            margin: 0 0 6px;
+            font-family: var(--font-head);
+            font-size: 18px;
+        }
+
+        .setting-copy p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .setting-value {
+            color: var(--text);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .setting-switch {
+            position: relative;
+            width: 54px;
+            height: 32px;
+            flex: 0 0 auto;
+        }
+
+        .setting-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .setting-slider {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            transition: all 0.25s ease;
+        }
+
+        .setting-slider::before {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            left: 4px;
+            top: 3px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fff, #d9e2f2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            transition: transform 0.25s ease, background 0.25s ease;
+        }
+
+        .setting-switch input:checked + .setting-slider {
+            background: rgba(0, 212, 170, 0.22);
+            border-color: rgba(0, 212, 170, 0.35);
+        }
+
+        .setting-switch input:checked + .setting-slider::before {
+            transform: translateX(22px);
+            background: linear-gradient(135deg, #00d4aa, #60a5fa);
+        }
+
+        .setting-row.is-toggle:hover {
+            border-color: rgba(0, 212, 170, 0.24);
+        }
+
+        .card,
+        .stat-card,
+        .feature-card,
+        .price-card,
+        .setting-row,
+        .notification-item {
+            border-radius: 18px;
+            background: var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        }
+
+        .stat-card,
+        .feature-card,
+        .price-card,
+        .setting-row,
+        .notification-item {
+            padding: 18px;
+        }
+
+        .stat-card strong,
+        .price-card strong {
+            display: block;
+            font-family: var(--font-head);
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .stat-card span,
+        .feature-card p,
+        .notification-item p,
+        .setting-row p,
+        .price-card li,
+        .price-card span {
+            color: var(--muted);
+        }
+
+        .feature-card .icon,
+        .notification-item .tag,
+        .price-card .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.06);
+            margin-bottom: 14px;
+        }
+
+        .feature-card h3,
+        .price-card h3,
+        .setting-row h3,
+        .notification-item h3 {
+            margin: 0 0 10px;
+            font-family: var(--font-head);
+        }
+
+        .movie-rail {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(180px, 220px);
+            gap: 14px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scroll-snap-type: x proximity;
+        }
+
+        .movie-card {
+            scroll-snap-align: start;
+            overflow: hidden;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(25, 27, 40, 0.98), rgba(14, 16, 24, 0.98));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(255, 255, 255, 0.14);
+            box-shadow: 0 22px 42px rgba(0, 0, 0, 0.35);
+        }
+
+        .movie-poster {
+            position: relative;
+            aspect-ratio: 2 / 3;
+            background: linear-gradient(145deg, #151728, #090a12);
+        }
+
+        .movie-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(8, 10, 16, 0.78);
+            border: 1px solid rgba(0, 212, 170, 0.18);
+            color: #8effe0;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .movie-body { padding: 14px; }
+
+        .movie-body h3 {
+            margin: 0 0 8px;
+            font-size: 15px;
+            line-height: 1.35;
+            font-family: var(--font-head);
+        }
+
+        .movie-body .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .movie-body p {
+            margin: 0 0 14px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 62px;
+        }
+
+        .movie-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .movie-actions a {
+            flex: 1;
+            text-align: center;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .movie-actions a.primary {
+            background: linear-gradient(135deg, rgba(255, 77, 109, 0.95), rgba(200, 30, 78, 0.95));
+            border-color: transparent;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .filters input,
+        .filters select {
+            width: 100%;
+            padding: 13px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            outline: none;
+        }
+
+        .filters input::placeholder { color: var(--muted); }
+
+        .empty-state {
+            padding: 24px;
+            border-radius: 18px;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        .pagination a,
+        .pagination span {
+            min-width: 44px;
+            height: 44px;
+            padding: 0 14px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .pagination .active {
+            background: linear-gradient(135deg, var(--accent), #c81e4e);
+            border-color: transparent;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            z-index: 40;
+            display: none;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+            padding: 10px;
+            border-radius: 22px;
+            background: rgba(10, 10, 16, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(18px);
+        }
+
+        .bottom-nav a {
+            display: grid;
+            place-items: center;
+            gap: 4px;
+            color: var(--muted);
+            font-size: 11px;
+            text-align: center;
+            padding: 10px 6px;
+            border-radius: 16px;
+        }
+
+        .bottom-nav a.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .mobile-ai {
+            position: fixed;
+            right: 18px;
+            bottom: 88px;
+            z-index: 42;
+            display: none;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(255, 77, 109, 0.95), rgba(0, 212, 170, 0.9));
+            box-shadow: 0 18px 40px rgba(255, 77, 109, 0.2);
+        }
+
+        .page-footer {
+            margin-top: 28px;
+            padding: 16px 4px 0;
+            color: var(--muted);
+            text-align: center;
+            font-size: 13px;
+        }
+
+        @media (max-width: 1180px) {
+            .hero { grid-template-columns: 1fr; }
+            .stat-grid,
+            .feature-grid,
+            .pricing-grid,
+            .community-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .community-browser { grid-template-columns: 1fr; }
+            .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 768px) {
+            .topbar-inner { gap: 12px; }
+            .nav-links { display: none; }
+            .hero { padding: 20px; }
+            .hero h1 { font-size: 40px; }
+            .hero-meta,
+            .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .section { padding: 18px; }
+            .section-header { flex-direction: column; align-items: start; }
+            .stat-grid,
+            .feature-grid,
+            .pricing-grid,
+            .community-grid { grid-template-columns: 1fr; }
+            .community-profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .movie-rail { grid-auto-columns: 176px; }
+            .filters { grid-template-columns: 1fr 1fr; }
+            .bottom-nav { display: grid; }
+            .mobile-ai { display: flex; }
+            .container { padding-bottom: 130px; }
+        }
+
+        @media (max-width: 520px) {
+            .container, .topbar-inner { width: min(100%, calc(100% - 18px)); }
+            .hero-meta { grid-template-columns: 1fr 1fr; }
+            .hero-poster-grid { grid-template-columns: 1fr; }
+            .filters { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+{% macro render_movie_card(movie) %}
+<a class="movie-card" href="/movie/{{ movie.slug }}">
+    <div class="movie-poster">
+        <img src="{{ movie.poster }}" alt="{{ movie.title }}" loading="lazy">
+        <div class="movie-badge">{{ movie.rating|round(1) }}</div>
+    </div>
+    <div class="movie-body">
+        <h3>{{ movie.title }}</h3>
+        <div class="meta"><span>{{ movie.year or 'TBA' }}</span><span>{{ movie.genre_text or '' }}</span></div>
+        <p>{{ movie.overview }}</p>
+        <div class="movie-actions">
+            <a class="primary" href="/movie/{{ movie.slug }}">Details</a>
+            <a href="/trailer/{{ movie.slug }}">Trailer</a>
+        </div>
+    </div>
+</a>
+{% endmacro %}
+<body>
+    <div class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/">
+                <div class="brand-mark"><span>◉</span></div>
+                <div>
+                    <div>MoodFlix</div>
+                    <small style="color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;">AI Streaming</small>
+                </div>
+            </a>
+            <nav class="nav-links">
+                <a href="/" class="{% if page.active_nav == 'home' %}active{% endif %}">Home</a>
+                <a href="/dashboard" class="{% if page.active_nav == 'dashboard' %}active{% endif %}">Dashboard</a>
+                <a href="/search" class="{% if page.active_nav == 'search' %}active{% endif %}">Search</a>
+                <a href="/recommendations" class="{% if page.active_nav == 'mood-ai' %}active{% endif %}">AI Recommendations</a>
+                <a href="/community" class="{% if page.active_nav == 'community' %}active{% endif %}">Community</a>
+                <a href="/watchlist" class="{% if page.active_nav == 'watchlist' %}active{% endif %}">Watchlist</a>
+                <a href="/profile" class="{% if page.active_nav == 'profile' %}active{% endif %}">Profile</a>
+            </nav>
+            <div class="top-actions">
+                <a class="icon-pill" href="/search" title="Search">⌕</a>
+                <a class="icon-pill" href="/notifications" title="Notifications">◌</a>
+                <a class="icon-pill" href="/settings" title="Settings">⚙</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="shell">
+        <div class="container">
+            {% set hero_movies = page.hero.get('featured_movies', []) if page.hero else [] %}
+            {% if page.hero %}
+            <section class="hero">
+                <div class="hero-copy">
+                    <div class="eyebrow">{{ page.hero.eyebrow }}</div>
+                    <h1>{{ page.hero.title }}</h1>
+                    <p>{{ page.hero.subtitle }}</p>
+                    <div class="hero-actions">
+                        {% if page.hero.primary_cta %}
+                        <a class="btn btn-primary" href="{{ page.hero.primary_cta.href }}">{{ page.hero.primary_cta.label }}</a>
+                        {% endif %}
+                        {% if page.hero.secondary_cta %}
+                        <a class="btn btn-secondary" href="{{ page.hero.secondary_cta.href }}">{{ page.hero.secondary_cta.label }}</a>
+                        {% endif %}
+                        {% if page.hero.tertiary_cta %}
+                        <a class="btn btn-tertiary" href="{{ page.hero.tertiary_cta.href }}">{{ page.hero.tertiary_cta.label }}</a>
+                        {% endif %}
+                    </div>
+                    {% if hero_movies %}
+                    <div class="hero-meta">
+                        {% for movie in hero_movies[:4] %}
+                        <a class="meta-card" href="/movie/{{ movie.slug }}">
+                            <strong>{{ movie.rating|round(1) }}</strong>
+                            <span>{{ movie.title }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-poster-grid">
+                        {% for movie in hero_movies[:4] %}
+                        <a class="hero-poster" href="/movie/{{ movie.slug }}">
+                            <img src="{{ movie.poster }}" alt="{{ movie.title }}" loading="lazy">
+                            <div class="poster-overlay">
+                                <strong>{{ movie.title }}</strong><br>
+                                <span>{{ movie.genre_text }}</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="section community-pulse" id="communityPulseSection">
+                <div class="section-header">
+                    <div>
+                        <h2>Community Pulse</h2>
+                        <p>Live MongoDB activity from seeded users, recent reviews, and platform-wide stats.</p>
+                    </div>
+                    <div class="section-actions">
+                        <button type="button" id="communityRefreshBtn">Refresh feed</button>
+                    </div>
+                </div>
+
+                <div class="stat-grid" id="communityStats">
+                    <div class="stat-card"><strong>—</strong><span>Users</span></div>
+                    <div class="stat-card"><strong>—</strong><span>Reviews</span></div>
+                    <div class="stat-card"><strong>—</strong><span>Avg Rating</span></div>
+                    <div class="stat-card"><strong>—</strong><span>Mood Scans</span></div>
+                </div>
+
+                <div class="community-grid">
+                    <div class="community-panel">
+                        <div class="community-panel-header">
+                            <div>
+                                <h3>Top Reviews</h3>
+                                <span>Highest-rated community picks</span>
+                            </div>
+                            <span id="topReviewsCount">Loading...</span>
+                        </div>
+                        <div class="community-list" id="topReviewsList"></div>
+                    </div>
+
+                    <div class="community-panel">
+                        <div class="community-panel-header">
+                            <div>
+                                <h3>Recent Reviews</h3>
+                                <span>Newest feedback from seeded users</span>
+                            </div>
+                            <span id="recentReviewsCount">Loading...</span>
+                        </div>
+                        <div class="community-list" id="recentReviewsList"></div>
+                    </div>
+
+                    <div class="community-panel">
+                        <div class="community-panel-header">
+                            <div>
+                                <h3>Featured Users</h3>
+                                <span>Profiles with review and mood history</span>
+                            </div>
+                            <span id="featuredUsersCount">Loading...</span>
+                        </div>
+                        <div class="community-list" id="featuredUsersList"></div>
+                    </div>
+                </div>
+            </section>
+
+            {% if page.movies and page.kind in ['grid', 'genre', 'search', 'watchlist', 'recommendations', 'trending', 'upcoming'] %}
+            <section class="section" id="results">
+                <div class="section-header">
+                    <div>
+                        <h2>{{ page.title }}</h2>
+                        <p>{{ page.description }}</p>
+                    </div>
+                    <div class="section-actions">
+                        <a href="/dashboard">Dashboard</a>
+                        <a href="/mood-ai">Mood AI</a>
+                    </div>
+                </div>
+                <div class="movie-rail" style="grid-auto-flow: row; grid-auto-columns: unset; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); overflow-x: visible;">
+                    {% for movie in page.movies %}
+                    {{ render_movie_card(movie) }}
+                    {% endfor %}
+                </div>
+                {% if page.total_pages and page.total_pages > 1 %}
+                <div class="pagination">
+                    {% set prev_page = page.current_page - 1 %}
+                    {% set next_page = page.current_page + 1 %}
+                    {% if prev_page >= 1 %}
+                    <a href="?page={{ prev_page }}">Previous</a>
+                    {% endif %}
+                    {% for n in range(1, page.total_pages + 1) %}
+                    <a href="?page={{ n }}" class="{% if n == page.current_page %}active{% endif %}">{{ n }}</a>
+                    {% endfor %}
+                    {% if next_page <= page.total_pages %}
+                    <a href="?page={{ next_page }}">Next</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </section>
+            {% endif %}
+
+            {% for section in page.sections or [] %}
+            <section class="section" id="{{ section.id or loop.index0 }}">
+                <div class="section-header">
+                    <div>
+                        <h2>{{ section.title }}</h2>
+                        {% if section.subtitle %}<p>{{ section.subtitle }}</p>{% endif %}
+                    </div>
+                    {% if section.actions %}
+                    <div class="section-actions">
+                        {% for action in section.actions %}
+                        <a href="{{ action.href }}">{{ action.label }}</a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if section.type == 'stats' %}
+                <div class="stat-grid">
+                    {% for item in section['items'] %}
+                    <div class="stat-card">
+                        <strong>{{ item.value }}</strong>
+                        <span>{{ item.label }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif section.type == 'feature-grid' %}
+                <div class="feature-grid">
+                    {% for item in section['items'] %}
+                    <div class="feature-card">
+                        <div class="icon">{{ item.icon }}</div>
+                        <h3>{{ item.title }}</h3>
+                        <p>{{ item.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif section.type == 'movie-row' %}
+                <div class="movie-rail">
+                    {% for movie in section.movies %}
+                    {{ render_movie_card(movie) }}
+                    {% endfor %}
+                </div>
+                {% elif section.type == 'search-bar' %}
+                <form class="section" action="/search" method="get" style="padding: 0; margin: 0; background: transparent; border: 0; box-shadow: none;">
+                    <div class="filters">
+                        <input type="search" name="q" placeholder="Search movies, moods, actors, or plots">
+                        <input type="text" name="genre" placeholder="Genre">
+                        <input type="text" name="language" placeholder="Language">
+                        <input type="text" name="year" placeholder="Year">
+                        <input type="text" name="rating" placeholder="Min rating">
+                        <input type="text" name="actor" placeholder="Actor">
+                        <button class="btn btn-primary" type="submit" style="min-height: 48px;">Search</button>
+                    </div>
+                </form>
+                {% elif section.type == 'notification-list' %}
+                <div class="notification-list">
+                    {% for item in section['items'] %}
+                    <div class="notification-item">
+                        <div class="tag">{{ item.tag }}</div>
+                        <h3>{{ item.title }}</h3>
+                        <p>{{ item.text }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif section.type == 'settings-list' %}
+                <div class="settings-grid">
+                    {% for item in section['items'] %}
+                    <div class="setting-row {% if item.kind == 'toggle' %}is-toggle{% endif %}">
+                        <div class="setting-copy">
+                            <h3>{{ item.label }}</h3>
+                            <p>{{ item.value }}</p>
+                        </div>
+                        {% if item.kind == 'toggle' %}
+                        <label class="setting-switch" title="Toggle {{ item.label }}">
+                            <input
+                                type="checkbox"
+                                data-setting-key="{{ item.setting_key }}"
+                                {% if item.checked %}checked{% endif %}
+                            >
+                            <span class="setting-slider"></span>
+                        </label>
+                        {% else %}
+                        <div class="setting-value">{{ item.value }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif section.type == 'community-browser' %}
+                <div class="community-browser">
+                    <div class="community-panel">
+                        <div class="community-panel-header">
+                            <div>
+                                <h3>{{ section.left_title or 'Browse Users' }}</h3>
+                                <span>{{ section.left_subtitle or 'Pick a seeded user to inspect their profile and reviews.' }}</span>
+                            </div>
+                            <span id="communityUsersCount">Loading...</span>
+                        </div>
+                        <div class="community-user-list" id="communityUserList"></div>
+                    </div>
+
+                    <div class="community-profile" id="communityProfilePane">
+                        <div class="community-profile-hero">
+                            <div class="community-profile-copy">
+                                <h3 id="communityProfileName">Loading profile...</h3>
+                                <p id="communityProfileEmail">Fetching user data from MongoDB.</p>
+                                <div class="community-profile-meta" id="communityProfileChips"></div>
+                            </div>
+                            <div class="community-avatar" id="communityProfileAvatar"></div>
+                        </div>
+
+                        <div class="community-profile-card">
+                            <div class="community-profile-stats" id="communityProfileStats"></div>
+                        </div>
+
+                        <div class="community-profile-card">
+                            <div class="community-panel-header">
+                                <div>
+                                    <h3 id="communityReviewsTitle">Recent Reviews</h3>
+                                    <span id="communityReviewsSubtitle">Loaded from the selected user profile.</span>
+                                </div>
+                                <span id="communityReviewsCount">0 reviews</span>
+                            </div>
+                            <div class="community-review-list" id="communityReviewList"></div>
+                        </div>
+                    </div>
+                </div>
+                {% elif section.type == 'pricing-cards' %}
+                <div class="pricing-grid">
+                    {% for item in section['items'] %}
+                    <div class="price-card" style="{% if item.featured %}border-color: rgba(0, 212, 170, 0.3); box-shadow: 0 24px 50px rgba(0, 212, 170, 0.12);{% endif %}">
+                        <div class="badge">{{ '★' if item.featured else '◎' }}</div>
+                        <h3>{{ item.name }}</h3>
+                        <strong>{{ item.price }}</strong>
+                        <span>per month</span>
+                        <ul>
+                            {% for benefit in item.benefits %}
+                            <li>{{ benefit }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </section>
+            {% endfor %}
+
+            {% if not page.hero and not page.movies and not page.sections %}
+            <div class="section">
+                <div class="empty-state">
+                    No content available for this page yet.
+                </div>
+            </div>
+            {% endif %}
+
+            <footer class="page-footer">
+                MoodFlix is a cinematic AI streaming scaffold with mood detection, discovery pages, and premium OTT styling.
+            </footer>
+        </div>
+    </div>
+
+    {% if page.show_mobile_nav %}
+    <nav class="bottom-nav">
+        <a href="/" class="{% if page.active_nav == 'home' %}active{% endif %}">Home</a>
+        <a href="/search" class="{% if page.active_nav == 'search' %}active{% endif %}">Search</a>
+        <a href="/mood-ai" class="{% if page.active_nav == 'mood-ai' %}active{% endif %}">Mood AI</a>
+        <a href="/watchlist" class="{% if page.active_nav == 'watchlist' %}active{% endif %}">Watchlist</a>
+        <a href="/community" class="{% if page.active_nav == 'community' %}active{% endif %}">Community</a>
+        <a href="/profile" class="{% if page.active_nav == 'profile' %}active{% endif %}">Profile</a>
+    </nav>
+    <a class="mobile-ai" href="/mood-ai" title="AI Mood Detection">📷</a>
+    {% endif %}
+
+    <script>
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
+        function formatRelativeDate(value) {
+            if (!value) return 'Recently';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Recently';
+            const diffMs = Date.now() - date.getTime();
+            const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return '1 day ago';
+            if (diffDays < 30) return `${diffDays} days ago`;
+            const months = Math.floor(diffDays / 30);
+            return months === 1 ? '1 month ago' : `${months} months ago`;
+        }
+
+        function renderMovieCard(movie) {
+            const genres = movie.genre_text || (movie.genres || []).slice(0, 3).join(', ');
+            const poster = movie.poster || '';
+            const title = movie.title || 'Untitled';
+            const year = movie.year || 'TBA';
+            const rating = movie.rating || 0;
+            const overview = movie.overview || 'Premium cinematic recommendation.';
+            const slug = movie.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            return `
+                <a class="movie-card" href="/movie/${slug}">
+                    <div class="movie-poster">
+                        <img src="${poster}" alt="${title}" loading="lazy">
+                        <div class="movie-badge">${Number(rating).toFixed ? Number(rating).toFixed(1) : rating}</div>
+                    </div>
+                    <div class="movie-body">
+                        <h3>${title}</h3>
+                        <div class="meta"><span>${year}</span><span>${genres}</span></div>
+                        <p>${overview}</p>
+                        <div class="movie-actions">
+                            <a class="primary" href="/movie/${slug}">Details</a>
+                            <a href="/trailer/${slug}">Trailer</a>
+                        </div>
+                    </div>
+                </a>`;
+        }
+
+        function renderStatCards(stats) {
+            const cards = [
+                { value: stats.totalUsers ?? '0', label: 'Users' },
+                { value: stats.totalReviews ?? '0', label: 'Reviews' },
+                { value: stats.averageRating != null ? Number(stats.averageRating).toFixed(2) : '0.00', label: 'Avg Rating' },
+                { value: stats.totalMoodScans ?? '0', label: 'Mood Scans' },
+            ];
+
+            return cards.map((item) => `
+                <div class="stat-card">
+                    <strong>${escapeHtml(item.value)}</strong>
+                    <span>${escapeHtml(item.label)}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderTopReview(review) {
+            const stars = '★'.repeat(Math.round(Number(review.score) || 0));
+            const reviewText = review.review || '';
+            return `
+                <div class="community-item">
+                    <div class="community-item-head">
+                        <strong>${escapeHtml(review.userName || 'Anonymous')}</strong>
+                        <span>${stars} ${escapeHtml((Number(review.score) || 0).toFixed(1))}</span>
+                    </div>
+                    <p>${escapeHtml(reviewText.slice(0, 160))}${reviewText.length > 160 ? '...' : ''}</p>
+                    <div class="subtle">${escapeHtml(formatRelativeDate(review.createdAt))}</div>
+                </div>
+            `;
+        }
+
+        function renderRecentReview(review) {
+            const reviewText = review.review || '';
+            return `
+                <div class="community-item">
+                    <div class="community-item-head">
+                        <strong>${escapeHtml(review.userName || 'Anonymous')}</strong>
+                        <span>${escapeHtml(formatRelativeDate(review.createdAt))}</span>
+                    </div>
+                    <p>${escapeHtml(reviewText.slice(0, 140))}${reviewText.length > 140 ? '...' : ''}</p>
+                    <div class="community-chips" style="margin-top: 10px;">
+                        <span class="community-chip">${escapeHtml((Number(review.score) || 0).toFixed(1))}★</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderFeaturedUser(user) {
+            const prefs = user.preferences || {};
+            return `
+                <div class="community-item">
+                    <div class="community-item-head">
+                        <strong>${escapeHtml(user.name || 'Unknown')}</strong>
+                        <span>${escapeHtml(user.email || '')}</span>
+                    </div>
+                    <p>${escapeHtml(user.reviewCount || 0)} reviews · ${escapeHtml(user.moodScans || 0)} mood scans · ${escapeHtml(user.watchlistItems || 0)} watchlist items</p>
+                    <div class="community-chips" style="margin-top: 10px;">
+                        <span class="community-chip">${escapeHtml(prefs.theme || 'theme')}</span>
+                        <span class="community-chip">${escapeHtml(prefs.language || 'lang')}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadCommunityPulse() {
+            const statsTarget = document.getElementById('communityStats');
+            const topReviewsTarget = document.getElementById('topReviewsList');
+            const recentReviewsTarget = document.getElementById('recentReviewsList');
+            const featuredUsersTarget = document.getElementById('featuredUsersList');
+
+            if (!statsTarget || !topReviewsTarget || !recentReviewsTarget || !featuredUsersTarget) {
+                return;
+            }
+
+            statsTarget.innerHTML = `
+                <div class="stat-card"><strong>...</strong><span>Users</span></div>
+                <div class="stat-card"><strong>...</strong><span>Reviews</span></div>
+                <div class="stat-card"><strong>...</strong><span>Avg Rating</span></div>
+                <div class="stat-card"><strong>...</strong><span>Mood Scans</span></div>
+            `;
+            topReviewsTarget.innerHTML = '<div class="empty-state">Loading top reviews...</div>';
+            recentReviewsTarget.innerHTML = '<div class="empty-state">Loading recent reviews...</div>';
+            featuredUsersTarget.innerHTML = '<div class="empty-state">Loading user profiles...</div>';
+
+            try {
+                const [statsRes, topRes, recentRes, usersRes] = await Promise.all([
+                    fetch('/api/stats/users'),
+                    fetch('/api/reviews/top?limit=3'),
+                    fetch('/api/reviews/recent?limit=3'),
+                    fetch('/api/users?page=1&per_page=3'),
+                ]);
+
+                const statsData = await statsRes.json();
+                const topData = await topRes.json();
+                const recentData = await recentRes.json();
+                const usersData = await usersRes.json();
+
+                if (statsData.success && statsData.stats) {
+                    statsTarget.innerHTML = renderStatCards(statsData.stats);
+                }
+
+                const topReviews = Array.isArray(topData.reviews) ? topData.reviews : [];
+                const recentReviews = Array.isArray(recentData.reviews) ? recentData.reviews : [];
+                const featuredUsers = Array.isArray(usersData.users) ? usersData.users : [];
+
+                document.getElementById('topReviewsCount').textContent = `${topReviews.length} items`;
+                document.getElementById('recentReviewsCount').textContent = `${recentReviews.length} items`;
+                document.getElementById('featuredUsersCount').textContent = `${featuredUsers.length} users`;
+
+                topReviewsTarget.innerHTML = topReviews.length
+                    ? topReviews.map(renderTopReview).join('')
+                    : '<div class="empty-state">No reviews found.</div>';
+
+                recentReviewsTarget.innerHTML = recentReviews.length
+                    ? recentReviews.map(renderRecentReview).join('')
+                    : '<div class="empty-state">No recent reviews found.</div>';
+
+                featuredUsersTarget.innerHTML = featuredUsers.length
+                    ? featuredUsers.map(renderFeaturedUser).join('')
+                    : '<div class="empty-state">No users found.</div>';
+            } catch (error) {
+                console.error('Failed to load community pulse', error);
+                statsTarget.innerHTML = '<div class="stat-card"><strong>—</strong><span>Unavailable</span></div>'.repeat(4);
+                topReviewsTarget.innerHTML = '<div class="empty-state">Unable to load top reviews.</div>';
+                recentReviewsTarget.innerHTML = '<div class="empty-state">Unable to load recent reviews.</div>';
+                featuredUsersTarget.innerHTML = '<div class="empty-state">Unable to load user profiles.</div>';
+            }
+        }
+
+        function renderCommunityUser(user) {
+            const prefs = user.preferences || {};
+            const initials = (user.name || 'U').split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase();
+            return `
+                <div class="community-user-card" data-user-id="${escapeHtml(user._id || '')}">
+                    <div class="community-user-card-head">
+                        <strong>${escapeHtml(user.name || 'Unknown')}</strong>
+                        <span class="mini">${escapeHtml(user.reviewCount || 0)} reviews</span>
+                    </div>
+                    <div class="community-chips">
+                        <span class="community-chip">${escapeHtml(prefs.theme || 'theme')}</span>
+                        <span class="community-chip">${escapeHtml(prefs.language || 'lang')}</span>
+                    </div>
+                    <p style="margin-top:10px;">${escapeHtml(user.email || '')}</p>
+                </div>
+            `;
+        }
+
+        function renderProfileStat(value, label) {
+            return `
+                <div class="profile-stat">
+                    <strong>${escapeHtml(value)}</strong>
+                    <span>${escapeHtml(label)}</span>
+                </div>
+            `;
+        }
+
+        function renderProfileReview(review) {
+            const reviewText = review.review || '';
+            return `
+                <div class="community-review-item">
+                    <div class="community-review-item-head">
+                        <strong>${escapeHtml((Number(review.score) || 0).toFixed(1))}★</strong>
+                        <span>${escapeHtml(formatRelativeDate(review.createdAt))}</span>
+                    </div>
+                    <p>${escapeHtml(reviewText)}</p>
+                </div>
+            `;
+        }
+
+        async function loadUserProfile(userId) {
+            const profileName = document.getElementById('communityProfileName');
+            const profileEmail = document.getElementById('communityProfileEmail');
+            const profileChips = document.getElementById('communityProfileChips');
+            const profileAvatar = document.getElementById('communityProfileAvatar');
+            const profileStats = document.getElementById('communityProfileStats');
+            const reviewList = document.getElementById('communityReviewList');
+            const reviewsCount = document.getElementById('communityReviewsCount');
+
+            if (!profileName || !profileEmail || !profileChips || !profileAvatar || !profileStats || !reviewList || !reviewsCount) {
+                return;
+            }
+
+            profileName.textContent = 'Loading profile...';
+            profileEmail.textContent = 'Fetching user data from MongoDB.';
+            profileChips.innerHTML = '';
+            profileAvatar.innerHTML = '';
+            profileStats.innerHTML = '<div class="profile-stat"><strong>...</strong><span>Loading</span></div>'.repeat(4);
+            reviewList.innerHTML = '<div class="empty-state">Loading reviews...</div>';
+            reviewsCount.textContent = '0 reviews';
+
+            try {
+                const [profileRes, reviewsRes] = await Promise.all([
+                    fetch(`/api/user/${encodeURIComponent(userId)}/profile`),
+                    fetch(`/api/user/${encodeURIComponent(userId)}/reviews?per_page=5`),
+                ]);
+
+                const profileData = await profileRes.json();
+                const reviewsData = await reviewsRes.json();
+
+                if (!profileData.success || !profileData.profile) {
+                    throw new Error(profileData.error || 'Profile not available');
+                }
+
+                const profile = profileData.profile;
+                profileName.textContent = profile.name || 'Unknown';
+                profileEmail.textContent = profile.email || '';
+                profileAvatar.innerHTML = `<img src="${escapeHtml(profile.avatar || '')}" alt="${escapeHtml(profile.name || 'User')}" loading="lazy">`;
+                profileChips.innerHTML = `
+                    <span class="community-chip">${escapeHtml(profile.preferences?.theme || 'theme')}</span>
+                    <span class="community-chip">${escapeHtml(profile.preferences?.language || 'lang')}</span>
+                    <span class="community-chip">${escapeHtml(profile.preferences?.cameraConsent ? 'Camera on' : 'Camera off')}</span>
+                `;
+                profileStats.innerHTML = `
+                    ${renderProfileStat(profile.stats?.totalReviews ?? 0, 'Reviews')}
+                    ${renderProfileStat(profile.stats?.averageRating?.toFixed ? profile.stats.averageRating.toFixed(2) : Number(profile.stats?.averageRating || 0).toFixed(2), 'Avg Rating')}
+                    ${renderProfileStat(profile.stats?.moodScans ?? 0, 'Mood Scans')}
+                    ${renderProfileStat(profile.stats?.watchlistItems ?? 0, 'Watchlist')}
+                `;
+
+                const reviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
+                reviewsCount.textContent = `${reviews.length} reviews`;
+                reviewList.innerHTML = reviews.length
+                    ? reviews.map(renderProfileReview).join('')
+                    : '<div class="empty-state">No reviews found for this user.</div>';
+            } catch (error) {
+                console.error('Failed to load user profile', error);
+                profileName.textContent = 'Profile unavailable';
+                profileEmail.textContent = error.message || 'Could not load the selected user.';
+                profileAvatar.innerHTML = '';
+                profileStats.innerHTML = '<div class="profile-stat"><strong>—</strong><span>Unavailable</span></div>'.repeat(4);
+                reviewList.innerHTML = '<div class="empty-state">Unable to load reviews.</div>';
+                reviewsCount.textContent = '0 reviews';
+            }
+        }
+
+        async function loadCommunityDirectory() {
+            const list = document.getElementById('communityUserList');
+            const count = document.getElementById('communityUsersCount');
+            if (!list || !count) {
+                return;
+            }
+
+            list.innerHTML = '<div class="empty-state">Loading users...</div>';
+            try {
+                const response = await fetch('/api/users?page=1&per_page=12');
+                const data = await response.json();
+                const users = Array.isArray(data.users) ? data.users : [];
+                count.textContent = `${data.total || users.length} users`;
+
+                list.innerHTML = users.length
+                    ? users.map((user) => renderCommunityUser(user)).join('')
+                    : '<div class="empty-state">No users available.</div>';
+
+                list.querySelectorAll('.community-user-card').forEach((card, index) => {
+                    card.addEventListener('click', () => {
+                        list.querySelectorAll('.community-user-card').forEach((node) => node.classList.remove('active'));
+                        card.classList.add('active');
+                        loadUserProfile(card.getAttribute('data-user-id'));
+                    });
+                    if (index === 0) {
+                        card.classList.add('active');
+                        const userId = card.getAttribute('data-user-id');
+                        if (userId) {
+                            loadUserProfile(userId);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load community directory', error);
+                count.textContent = 'Unavailable';
+                list.innerHTML = '<div class="empty-state">Unable to load users.</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[data-movie-card]').forEach((node) => {
+                const data = JSON.parse(node.textContent);
+                node.outerHTML = renderMovieCard(data);
+            });
+
+            document.querySelectorAll('[data-setting-key]').forEach((input) => {
+                const key = input.getAttribute('data-setting-key');
+                const storedValue = localStorage.getItem(`moodflix:${key}`);
+
+                if (storedValue !== null) {
+                    input.checked = storedValue === 'true';
+                }
+
+                input.addEventListener('change', () => {
+                    localStorage.setItem(`moodflix:${key}`, String(input.checked));
+                });
+            });
+
+            const refreshBtn = document.getElementById('communityRefreshBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', loadCommunityPulse);
+            }
+
+            loadCommunityPulse();
+
+            const communityList = document.getElementById('communityUserList');
+            if (communityList) {
+                loadCommunityDirectory();
+            }
+        });
+    </script>
+</body>
+</html>

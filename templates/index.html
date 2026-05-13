@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodFlix - AI-Powered Movie Recommendations</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- TensorFlow & Face-api for emotion detection -->
+    <script async src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-card: #13131a;
+            --bg-card-hover: #1a1a24;
+            --border-subtle: rgba(255,255,255,0.06);
+            --border-active: #00d4aa;
+            --text-primary: #ffffff;
+            --text-secondary: #8b8b9e;
+            --text-muted: #5a5a6e;
+            --accent-red: #e50914;
+            --accent-red-glow: rgba(229,9,20,0.3);
+            --accent-green: #00d4aa;
+            --accent-green-glow: rgba(0,212,170,0.25);
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(ellipse, rgba(229,9,20,0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+
+        .badge-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .clapper-icon {
+            font-size: 22px;
+            filter: grayscale(0.3);
+        }
+
+        .ai-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            border-radius: 100px;
+            background: rgba(229,9,20,0.12);
+            border: 1px solid rgba(229,9,20,0.25);
+            color: var(--accent-red);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .ai-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-red);
+            box-shadow: 0 0 8px var(--accent-red);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        h1 {
+            font-size: 64px;
+            font-weight: 900;
+            letter-spacing: -2px;
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+
+        h1 .mood { color: var(--text-primary); }
+        h1 .flix { color: var(--accent-red); }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 18px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        /* ===== MAIN CARD ===== */
+        .main-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 48px 40px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .card-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .card-header p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        /* ===== MOOD GRID ===== */
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin: 32px 0;
+        }
+
+        .mood-card {
+            aspect-ratio: 1 / 0.85;
+            background: rgba(255,255,255,0.03);
+            border: 1.5px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            user-select: none;
+        }
+
+        .mood-card:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.12);
+            transform: translateY(-3px);
+        }
+
+        .mood-card.active {
+            border-color: var(--accent-green);
+            background: rgba(0,212,170,0.06);
+            box-shadow: 0 0 30px var(--accent-green-glow), inset 0 0 20px rgba(0,212,170,0.05);
+        }
+
+        .mood-card .emoji {
+            font-size: 36px;
+            line-height: 1;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+            transition: transform 0.3s ease;
+        }
+
+        .mood-card:hover .emoji {
+            transform: scale(1.15);
+        }
+
+        .mood-card .label {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+
+        /* ===== DIVIDER ===== */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 28px 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        }
+
+        /* ===== TEXT INPUT ===== */
+        .text-input-wrap {
+            position: relative;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 18px 22px;
+            border-radius: 14px;
+            border: 1.5px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.25);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: var(--font);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .text-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .text-input:focus {
+            border-color: rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.35);
+        }
+
+        /* ===== SUBMIT BUTTON ===== */
+        .submit-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 18px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #e50914, #b91c1c);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .submit-btn:hover::after {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(229,9,20,0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== ANALYSIS BOX ===== */
+        .analysis-box {
+            background: rgba(0,212,170,0.05);
+            border: 1px solid rgba(0,212,170,0.15);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            display: none;
+            animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .analysis-box .mood-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 100px;
+            background: rgba(0,212,170,0.12);
+            border: 1px solid rgba(0,212,170,0.25);
+            color: var(--accent-green);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .analysis-box .explanation {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }
+
+        .analysis-box .genres {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* ===== RESULTS ===== */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 0 4px;
+        }
+
+        .results-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .results-header .count {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* ===== MOVIE GRID - POSTER CARDS ===== */
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+
+        .movie-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeUp 0.5s ease backwards;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .movie-card:nth-child(1) { animation-delay: 0.04s; }
+        .movie-card:nth-child(2) { animation-delay: 0.08s; }
+        .movie-card:nth-child(3) { animation-delay: 0.12s; }
+        .movie-card:nth-child(4) { animation-delay: 0.16s; }
+        .movie-card:nth-child(5) { animation-delay: 0.20s; }
+        .movie-card:nth-child(6) { animation-delay: 0.24s; }
+        .movie-card:nth-child(7) { animation-delay: 0.28s; }
+        .movie-card:nth-child(8) { animation-delay: 0.32s; }
+        .movie-card:nth-child(9) { animation-delay: 0.36s; }
+        .movie-card:nth-child(10) { animation-delay: 0.40s; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .movie-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(255,255,255,0.15);
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+        }
+
+        /* Poster container */
+        .poster-wrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2 / 3;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+        }
+
+        .poster-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .movie-card:hover .poster-wrap img {
+            transform: scale(1.08);
+        }
+
+        /* Play button overlay */
+        .play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .movie-card:hover .play-overlay {
+            opacity: 1;
+        }
+
+        .play-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(229,9,20,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            transition: transform 0.3s ease, background 0.3s ease;
+            box-shadow: 0 8px 24px rgba(229,9,20,0.4);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.15);
+            background: var(--accent-red);
+        }
+
+        .play-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+            margin-left: 3px;
+        }
+
+        /* Match score badge on poster */
+        .poster-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent-green);
+            border: 1px solid rgba(0,212,170,0.3);
+        }
+
+        /* Movie info */
+        .movie-info {
+            padding: 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .movie-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            line-height: 1.35;
+            color: var(--text-primary);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .movie-genres {
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }
+
+        .movie-overview {
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.5;
+            margin-bottom: 14px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        /* Action buttons */
+        .movie-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .btn-trailer {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #e50914, #b91c1c);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-trailer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229,9,20,0.35);
+        }
+
+        .btn-trailer svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        .btn-details {
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.06);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-details:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        /* ===== LOADING ===== */
+        .loading {
+            text-align: center;
+            padding: 50px 20px;
+            display: none;
+        }
+
+        .loading .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(255,255,255,0.06);
+            border-top-color: var(--accent-red);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            text-align: center;
+            padding: 30px 20px 50px;
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        /* ===== MOVIE DETAILS MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 24px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #181822, #12121a);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            max-width: 820px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: scale(0.92) translateY(20px);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Scrollbar styling */
+        .modal-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .modal-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .modal-content::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+
+        /* Close button */
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            z-index: 10;
+        }
+
+        .modal-close:hover {
+            background: rgba(229,9,20,0.7);
+            border-color: rgba(229,9,20,0.5);
+            transform: rotate(90deg);
+        }
+
+        /* Modal layout */
+        .modal-body {
+            display: flex;
+            gap: 0;
+        }
+
+        /* Left: Poster */
+        .modal-poster {
+            flex-shrink: 0;
+            width: 300px;
+            min-height: 450px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px 0 0 24px;
+        }
+
+        .modal-poster img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .modal-poster-gradient {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, transparent 60%, #181822);
+            pointer-events: none;
+        }
+
+        /* Right: Details */
+        .modal-details {
+            flex: 1;
+            padding: 40px 36px 36px 28px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-match-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .modal-match-ring {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--accent-green);
+            position: relative;
+        }
+
+        .modal-match-ring svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 52px;
+            height: 52px;
+            transform: rotate(-90deg);
+        }
+
+        .modal-match-ring circle {
+            fill: none;
+            stroke-width: 3;
+        }
+
+        .modal-match-ring .ring-bg {
+            stroke: rgba(255,255,255,0.06);
+        }
+
+        .modal-match-ring .ring-fill {
+            stroke: var(--accent-green);
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.8s ease;
+        }
+
+        .modal-match-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 14px;
+            letter-spacing: -0.5px;
+        }
+
+        .modal-genre-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .genre-pill {
+            padding: 5px 14px;
+            border-radius: 100px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .modal-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .modal-overview {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.75;
+            margin-bottom: 28px;
+            flex: 1;
+        }
+
+        .modal-meta {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 28px;
+            padding: 16px 0;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .modal-meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .modal-meta-item .meta-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .modal-meta-item .meta-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Modal actions */
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .modal-btn-trailer {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 24px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #e50914, #b91c1c);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modal-btn-trailer::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .modal-btn-trailer:hover::after {
+            left: 100%;
+        }
+
+        .modal-btn-trailer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(229,9,20,0.4);
+        }
+
+        .modal-btn-trailer svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        .modal-btn-close {
+            padding: 16px 28px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.06);
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-close:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            h1 { font-size: 42px; }
+            .main-card { padding: 32px 20px; border-radius: 20px; }
+            .mood-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .mood-card { aspect-ratio: 1 / 0.9; border-radius: 14px; }
+            .mood-card .emoji { font-size: 30px; }
+            .mood-card .label { font-size: 12px; }
+            .movies-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            .container { padding: 0 16px; }
+
+            .modal-body { flex-direction: column; }
+            .modal-poster {
+                width: 100%;
+                min-height: 280px;
+                max-height: 320px;
+                border-radius: 24px 24px 0 0;
+            }
+            .modal-poster-gradient {
+                background: linear-gradient(to bottom, transparent 50%, #181822);
+            }
+            .modal-details { padding: 24px 20px 28px; }
+            .modal-title { font-size: 22px; }
+            .modal-content { border-radius: 20px; }
+            .modal-actions { flex-direction: column; }
+        }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 36px; letter-spacing: -1px; }
+            .subtitle { font-size: 15px; }
+            .main-card { padding: 24px 16px; }
+            .mood-grid { gap: 10px; }
+            .mood-card { border-radius: 12px; }
+            .movies-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .movie-info { padding: 12px; }
+            .movie-title { font-size: 13px; }
+            .movie-overview { -webkit-line-clamp: 2; }
+
+            .modal-overlay { padding: 12px; }
+            .modal-poster { min-height: 220px; max-height: 260px; }
+            .modal-details { padding: 20px 16px 24px; }
+            .modal-title { font-size: 20px; }
+            .modal-overview { font-size: 14px; }
+        }
+
+        /* ===== CAMERA FEATURE ===== */
+        .camera-btn {
+            margin-top: 24px;
+            padding: 14px 24px;
+            border: 1.5px solid var(--accent-green);
+            border-radius: 12px;
+            background: rgba(0,212,170,0.08);
+            color: var(--accent-green);
+            font-size: 14px;
+            font-weight: 700;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .camera-btn:hover {
+            background: rgba(0,212,170,0.15);
+            box-shadow: 0 8px 24px rgba(0,212,170,0.2);
+            transform: translateY(-2px);
+        }
+
+        .camera-btn::before {
+            content: '📷';
+            font-size: 16px;
+        }
+
+        /* ===== CAMERA PERMISSION MODAL ===== */
+        .camera-permission-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+        }
+
+        .camera-permission-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .camera-permission-content {
+            background: linear-gradient(145deg, rgba(30,30,50,0.8), rgba(20,20,35,0.9));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(0,212,170,0.3);
+            border-radius: 32px;
+            padding: 48px 40px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+            transform: scale(0.9);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .camera-permission-modal.active .camera-permission-content {
+            transform: scale(1);
+        }
+
+        .camera-permission-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+
+        .camera-permission-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .camera-permission-desc {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .camera-permission-note {
+            background: rgba(0,212,170,0.08);
+            border: 1px solid rgba(0,212,170,0.2);
+            border-radius: 16px;
+            padding: 16px 20px;
+            color: var(--accent-green);
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+            letter-spacing: 0.3px;
+        }
+
+        .camera-permission-note::before {
+            content: '🔒 ';
+            margin-right: 6px;
+        }
+
+        .camera-permission-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .camera-permission-actions button {
+            flex: 1;
+            padding: 16px 24px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .btn-enable-camera {
+            background: linear-gradient(135deg, var(--accent-green), #00a896);
+            color: #000;
+            box-shadow: 0 10px 30px rgba(0,212,170,0.3);
+        }
+
+        .btn-enable-camera:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0,212,170,0.4);
+        }
+
+        .btn-skip-camera {
+            background: rgba(255,255,255,0.06);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-skip-camera:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        /* ===== CAMERA SCANNER MODAL ===== */
+        .camera-scanner-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease;
+            padding: 20px;
+        }
+
+        .camera-scanner-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .camera-scanner-container {
+            max-width: 600px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .camera-video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            aspect-ratio: 4 / 3;
+            background: #000;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 2px solid rgba(0,212,170,0.4);
+            box-shadow: 0 0 60px rgba(0,212,170,0.2), inset 0 0 30px rgba(0,212,170,0.05);
+        }
+
+        #cameraVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #detectionCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .camera-scan-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 280px;
+            border: 3px solid rgba(0,212,170,0);
+            border-radius: 50%;
+            box-shadow: 
+                inset 0 0 20px rgba(0,212,170,0.3),
+                0 0 40px rgba(0,212,170,0.2);
+            animation: scan 2s ease-in-out infinite;
+        }
+
+        @keyframes scan {
+            0%, 100% { 
+                border-color: rgba(0,212,170,0.1);
+                box-shadow: inset 0 0 20px rgba(0,212,170,0.1), 0 0 40px rgba(0,212,170,0.1);
+            }
+            50% { 
+                border-color: rgba(0,212,170,0.4);
+                box-shadow: inset 0 0 20px rgba(0,212,170,0.3), 0 0 60px rgba(0,212,170,0.3);
+            }
+        }
+
+        .camera-scan-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            opacity: 0.4;
+        }
+
+        .camera-scan-crosshair line {
+            stroke: var(--accent-green);
+            stroke-width: 2;
+            stroke-linecap: round;
+        }
+
+        .camera-status {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .camera-status::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 12px var(--accent-green);
+            margin-right: 8px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        #detectionResult {
+            text-align: center;
+            color: var(--text-primary);
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .camera-result-container {
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .camera-result-container.show-result {
+            opacity: 1;
+        }
+
+        .camera-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            z-index: 10;
+        }
+
+        .camera-close-btn:hover {
+            background: rgba(0,212,170,0.4);
+            border-color: rgba(0,212,170,0.5);
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- HEADER -->
+        <header>
+            <div class="badge-row">
+                <span class="clapper-icon">🎬</span>
+                <span class="ai-badge">AI-Powered</span>
+            </div>
+            <h1><span class="mood">Mood</span><span class="flix">Flix</span></h1>
+            <p class="subtitle">Tell us how you feel. We'll find your perfect movie.</p>
+        </header>
+
+        <!-- MAIN CARD -->
+        <div class="main-card">
+            <div class="card-header">
+                <h2>How are you feeling?</h2>
+                <p>Pick a mood or describe your feelings below</p>
+            </div>
+
+            <!-- MOOD GRID -->
+            <div class="mood-grid">
+                <div class="mood-card" data-mood="happy" onclick="selectMood(this)">
+                    <span class="emoji">😊</span>
+                    <span class="label">Happy</span>
+                </div>
+                <div class="mood-card" data-mood="sad" onclick="selectMood(this)">
+                    <span class="emoji">😢</span>
+                    <span class="label">Sad</span>
+                </div>
+                <div class="mood-card" data-mood="excited" onclick="selectMood(this)">
+                    <span class="emoji">⚡</span>
+                    <span class="label">Excited</span>
+                </div>
+                <div class="mood-card" data-mood="chill" onclick="selectMood(this)">
+                    <span class="emoji">🍃</span>
+                    <span class="label">Chill</span>
+                </div>
+                <div class="mood-card" data-mood="romantic" onclick="selectMood(this)">
+                    <span class="emoji">❤️</span>
+                    <span class="label">Romantic</span>
+                </div>
+                <div class="mood-card" data-mood="angry" onclick="selectMood(this)">
+                    <span class="emoji">😠</span>
+                    <span class="label">Angry</span>
+                </div>
+                <div class="mood-card" data-mood="scared" onclick="selectMood(this)">
+                    <span class="emoji">👻</span>
+                    <span class="label">Scared</span>
+                </div>
+                <div class="mood-card" data-mood="nostalgic" onclick="selectMood(this)">
+                    <span class="emoji">🕰️</span>
+                    <span class="label">Nostalgic</span>
+                </div>
+            </div>
+
+            <!-- DIVIDER -->
+            <div class="divider">or type it out</div>
+
+            <!-- TEXT INPUT -->
+            <div class="text-input-wrap">
+                <input type="text" class="text-input" id="moodText" 
+                       placeholder="I feel sad and want to cry..."
+                       onkeydown="if(event.key==='Enter') getRecommendations()">
+            </div>
+
+            <button class="submit-btn" id="submitBtn" onclick="getRecommendations()">
+                ✨ Find My Movie
+            </button>
+
+            <button class="camera-btn" onclick="window.cameraMoodUI.showPermissionModal()">
+                AI Camera Scanner
+            </button>
+        </div>
+
+        <!-- ANALYSIS -->
+        <div class="analysis-box" id="analysisBox">
+            <div class="mood-tag" id="moodTag">MOOD</div>
+            <div class="explanation" id="moodExplanation"></div>
+            <div class="genres" id="moodGenres"></div>
+        </div>
+
+        <!-- LOADING -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Finding perfect movies for your mood...</p>
+        </div>
+
+        <!-- RESULTS HEADER -->
+        <div class="results-header" id="resultsHeader" style="display:none;">
+            <h2>🎯 Recommended for Your Mood</h2>
+            <span class="count" id="resultCount"></span>
+        </div>
+
+        <!-- MOVIES GRID -->
+        <div class="movies-grid" id="moviesGrid"></div>
+
+        <!-- EMPTY STATE -->
+        <div class="empty-state" id="emptyState">
+            <div class="icon">🍿</div>
+            <p>Select a mood or type how you feel to get started</p>
+        </div>
+
+        <!-- FOOTER -->
+        <footer>
+            MoodFlix — Hybrid LLM + ML Recommendation System<br>
+            Built with Flask, scikit-learn, and mood intelligence
+        </footer>
+
+    </div>
+
+    <!-- MOVIE DETAILS MODAL -->
+    <div class="modal-overlay" id="movieModal" onclick="if(event.target===this)closeModal()">
+        <div class="modal-content" id="modalContent">
+            <button class="modal-close" id="modalCloseBtn" onclick="closeModal()" title="Close">✕</button>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- CAMERA PERMISSION MODAL -->
+    <div class="camera-permission-modal" id="cameraPermissionModal">
+        <div class="camera-permission-content">
+            <div class="camera-permission-icon">📷</div>
+            <div class="camera-permission-title">AI Mood Detection</div>
+            <div class="camera-permission-desc">
+                Let our AI analyze your facial expressions to detect your mood and recommend the perfect movies for you.
+            </div>
+            <div class="camera-permission-note">
+                Your privacy is protected. All processing happens locally on your device. No data is stored or transmitted.
+            </div>
+            <div class="camera-permission-actions">
+                <button class="btn-enable-camera" onclick="window.cameraMoodUI.startCameraDetection()">
+                    Enable Camera
+                </button>
+                <button class="btn-skip-camera" onclick="window.cameraMoodUI.hidePermissionModal()">
+                    Skip
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAMERA SCANNER MODAL -->
+    <div class="camera-scanner-modal" id="cameraScannerModal">
+        <button class="camera-close-btn" onclick="window.cameraMoodUI.detectionActive = false; window.emotionDetector.stopCamera(); document.getElementById('cameraScannerModal').classList.remove('active');">✕</button>
+        <div class="camera-scanner-container">
+            <div class="camera-video-wrapper">
+                <video id="cameraVideo" autoplay playsinline muted></video>
+                <canvas id="detectionCanvas"></canvas>
+                <div class="camera-scan-ring"></div>
+                <svg class="camera-scan-crosshair" viewBox="0 0 100 100">
+                    <line x1="50" y1="20" x2="50" y2="35" />
+                    <line x1="50" y1="65" x2="50" y2="80" />
+                    <line x1="20" y1="50" x2="35" y2="50" />
+                    <line x1="65" y1="50" x2="80" y2="50" />
+                </svg>
+            </div>
+            <div class="camera-result-container" id="cameraResultContainer">
+                <div id="detectionResult" style="color: var(--text-muted); font-size: 14px; text-align: center;">
+                    Scanning your mood...
+                </div>
+            </div>
+            <div class="camera-status" id="cameraStatus">
+                Initializing camera...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedMood = null;
+
+        function selectMood(card) {
+            document.querySelectorAll('.mood-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            selectedMood = card.dataset.mood;
+            document.getElementById('moodText').value = '';
+        }
+
+        function getRecommendations() {
+            const text = document.getElementById('moodText').value.trim();
+            const loading = document.getElementById('loading');
+            const grid = document.getElementById('moviesGrid');
+            const analysis = document.getElementById('analysisBox');
+            const resultsHeader = document.getElementById('resultsHeader');
+            const emptyState = document.getElementById('emptyState');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!text && !selectedMood) {
+                alert('Please select a mood or type how you feel!');
+                return;
+            }
+
+            loading.style.display = 'block';
+            grid.innerHTML = '';
+            analysis.style.display = 'none';
+            resultsHeader.style.display = 'none';
+            emptyState.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Analyzing...';
+
+            fetch('/api/recommend', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    text: text,
+                    mood: selectedMood,
+                    user_id: 1,
+                    top_n: 10
+                })
+            })
+            .then(r => {
+                if (!r.ok) throw new Error('Server error: ' + r.status);
+                return r.json();
+            })
+            .then(data => {
+                // Analysis box
+                const a = data.mood_analysis;
+                const tag = document.getElementById('moodTag');
+                tag.textContent = a.mood_category + '  ' + Math.round(a.confidence * 100) + '%';
+                document.getElementById('moodExplanation').textContent = a.explanation;
+                document.getElementById('moodGenres').textContent = 
+                    'Preferred genres: ' + a.preferred_genres.join(', ');
+                analysis.style.display = 'block';
+
+                // Results header
+                document.getElementById('resultCount').textContent = 
+                    data.recommendations.length + ' movies';
+                resultsHeader.style.display = 'flex';
+
+                // Movie cards with poster + trailer
+                data.recommendations.forEach((movie, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+
+                    const posterUrl = movie.poster_url || '';
+                    const trailerUrl = movie.trailer_url || '#';
+
+                    // Store movie data on the card for modal use
+                    card._movieData = movie;
+
+                    card.innerHTML = `
+                        <div class="poster-wrap" onclick="showMovieDetails(this)" style="cursor:pointer" title="Click for details">
+                            <img src="${escapeHtml(posterUrl)}" alt="${escapeHtml(movie.title)}" loading="lazy" onerror="this.src='https://placehold.co/300x450/1a1a2e/ffffff?text=${encodeURIComponent(movie.title.substring(0,15))}'">
+                            <div class="play-overlay">
+                                <div class="play-btn">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                                </div>
+                            </div>
+                            <div class="poster-badge">${movie.match_score}% Match</div>
+                        </div>
+                        <div class="movie-info">
+                            <div class="movie-title">${escapeHtml(movie.title)}</div>
+                            <div class="movie-genres">${escapeHtml(movie.genres)}</div>
+                            <div class="movie-overview">${escapeHtml(movie.overview)}</div>
+                            <div class="movie-actions">
+                                <a href="${escapeHtml(trailerUrl)}" target="_blank" class="btn-trailer" onclick="event.stopPropagation()">
+                                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    Watch Trailer
+                                </a>
+                                <button class="btn-details" onclick="event.stopPropagation(); showMovieDetails(this)">Details</button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error: ' + err.message);
+                emptyState.style.display = 'block';
+            })
+            .finally(() => {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '✨ Find My Movie';
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        // Movie Details Modal
+        // ============================================================
+        function showMovieDetails(el) {
+            // Walk up to .movie-card to get stored data
+            const card = el.closest('.movie-card');
+            if (!card || !card._movieData) return;
+            const movie = card._movieData;
+
+            const posterUrl = movie.poster_url || '';
+            const trailerUrl = movie.trailer_url || '#';
+            const matchScore = movie.match_score || 0;
+            const circumference = 2 * Math.PI * 22; // radius=22
+            const offset = circumference - (matchScore / 100) * circumference;
+
+            // Genre pills
+            const genres = movie.genres ? movie.genres.split(',') : [];
+            const genrePills = genres.map(g => `<span class="genre-pill">${escapeHtml(g.trim())}</span>`).join('');
+
+            // Determine match color
+            let matchColor = '#00d4aa';
+            if (matchScore < 40) matchColor = '#e74c3c';
+            else if (matchScore < 70) matchColor = '#f39c12';
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="modal-poster">
+                    <img src="${escapeHtml(posterUrl)}" alt="${escapeHtml(movie.title)}"
+                         onerror="this.src='https://placehold.co/300x450/1a1a2e/ffffff?text=${encodeURIComponent(movie.title.substring(0,15))}'">
+                    <div class="modal-poster-gradient"></div>
+                </div>
+                <div class="modal-details">
+                    <div class="modal-match-row">
+                        <div class="modal-match-ring" style="color: ${matchColor}">
+                            <svg viewBox="0 0 48 48">
+                                <circle class="ring-bg" cx="24" cy="24" r="22"/>
+                                <circle class="ring-fill" cx="24" cy="24" r="22"
+                                    style="stroke: ${matchColor}; stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset}"/>
+                            </svg>
+                            ${matchScore}%
+                        </div>
+                        <span class="modal-match-label">Match Score</span>
+                    </div>
+
+                    <div class="modal-title">${escapeHtml(movie.title)}</div>
+
+                    <div class="modal-genre-pills">${genrePills}</div>
+
+                    <div class="modal-meta">
+                        <div class="modal-meta-item">
+                            <span class="meta-label">Movie ID</span>
+                            <span class="meta-value">#${movie.id}</span>
+                        </div>
+                        <div class="modal-meta-item">
+                            <span class="meta-label">Genres</span>
+                            <span class="meta-value">${genres.length}</span>
+                        </div>
+                        <div class="modal-meta-item">
+                            <span class="meta-label">Status</span>
+                            <span class="meta-value" style="color: ${matchColor}">● Recommended</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-section-label">Overview</div>
+                    <div class="modal-overview">${escapeHtml(movie.overview)}</div>
+
+                    <div class="modal-actions">
+                        <a href="${escapeHtml(trailerUrl)}" target="_blank" class="modal-btn-trailer">
+                            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            Watch Trailer
+                        </a>
+                        <button class="modal-btn-close" onclick="closeModal()">Close</button>
+                    </div>
+                </div>
+            `;
+
+            // Show modal
+            const overlay = document.getElementById('movieModal');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('movieModal');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+
+    <!-- Load Emotion Detection & Camera UI -->
+    <script src="/static/emotion-detector.js"></script>
+    <script src="/static/camera-ui.js"></script>
+
+    <!-- Show camera permission modal on page load -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                if (localStorage.getItem('moodflix_camera_dismissed') !== 'true') {
+                    window.cameraMoodUI.showPermissionModal();
+                }
+            } catch (error) {
+                window.cameraMoodUI.showPermissionModal();
+            }
+        });
+    </script>
+</body>
+</html>

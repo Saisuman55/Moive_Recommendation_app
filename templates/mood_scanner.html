@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title }}</title>
+    <meta name="description" content="{{ page.description }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script async src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.min.js"></script>
+    <style>
+        :root {
+            --bg: #06060b;
+            --panel: rgba(17, 19, 30, 0.82);
+            --panel-strong: rgba(22, 24, 36, 0.96);
+            --text: #f7f8fc;
+            --muted: #97a0af;
+            --line: rgba(255,255,255,0.08);
+            --accent: #ff4d6d;
+            --accent-2: #00d4aa;
+            --font-head: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: var(--font-body);
+            color: var(--text);
+            background:
+                radial-gradient(circle at 20% 10%, rgba(255,77,109,0.14), transparent 28%),
+                radial-gradient(circle at 80% 20%, rgba(0,212,170,0.12), transparent 26%),
+                radial-gradient(circle at 50% 90%, rgba(96,165,250,0.12), transparent 26%),
+                linear-gradient(180deg, #040408 0%, var(--bg) 100%);
+            overflow-x: hidden;
+        }
+        a { color: inherit; text-decoration: none; }
+        .container {
+            width: min(1300px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 22px 0 96px;
+        }
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            background: linear-gradient(180deg, rgba(4,5,9,0.92), rgba(4,5,9,0.6));
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .topbar-inner {
+            width: min(1300px, calc(100% - 32px));
+            margin: 0 auto;
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-head);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .brand-mark {
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(255,77,109,0.22), rgba(0,212,170,0.18));
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            padding: 10px 14px;
+            border-radius: 999px;
+            color: var(--muted);
+            border: 1px solid transparent;
+            transition: all 0.25s ease;
+        }
+        .nav-links a:hover {
+            color: var(--text);
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.08);
+        }
+        .hero {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+            gap: 24px;
+            margin-top: 22px;
+            padding: 28px;
+            border-radius: 30px;
+            background: linear-gradient(145deg, rgba(21,23,35,0.9), rgba(9,10,16,0.96));
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.42);
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top left, rgba(255,77,109,0.14), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(0,212,170,0.1), transparent 30%);
+            pointer-events: none;
+        }
+        .hero-copy, .hero-card { position: relative; z-index: 1; }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(0,212,170,0.08);
+            border: 1px solid rgba(0,212,170,0.18);
+            color: #8effe0;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        h1 {
+            margin: 18px 0 12px;
+            font-family: var(--font-head);
+            font-size: clamp(40px, 5vw, 76px);
+            line-height: 0.95;
+            letter-spacing: -0.05em;
+        }
+        .hero-copy p {
+            margin: 0;
+            max-width: 60ch;
+            color: var(--muted);
+            line-height: 1.75;
+            font-size: 17px;
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 48px;
+            padding: 0 18px;
+            border-radius: 14px;
+            font-weight: 800;
+            border: 1px solid transparent;
+            transition: all 0.25s ease;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), #c81e4e);
+            box-shadow: 0 18px 36px rgba(255, 77, 109, 0.24);
+        }
+        .btn-secondary {
+            color: var(--text);
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.08);
+        }
+        .btn-tertiary {
+            color: #bafdf1;
+            background: rgba(0,212,170,0.08);
+            border-color: rgba(0,212,170,0.16);
+        }
+        .feature-grid {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .feature-card,
+        .result-card,
+        .panel {
+            border-radius: 22px;
+            background: var(--panel);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 16px 36px rgba(0,0,0,0.22);
+        }
+        .feature-card {
+            padding: 18px;
+        }
+        .feature-card .icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 14px;
+            background: rgba(255,255,255,0.05);
+        }
+        .feature-card h3 {
+            margin: 0 0 10px;
+            font-family: var(--font-head);
+        }
+        .feature-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 14px;
+        }
+        .scanner-layout {
+            margin-top: 26px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+            gap: 20px;
+        }
+        .panel {
+            padding: 18px;
+        }
+        .panel h2 {
+            margin: 0 0 8px;
+            font-family: var(--font-head);
+            font-size: 24px;
+            letter-spacing: -0.04em;
+        }
+        .panel p {
+            margin: 0 0 18px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+        .scanner-stage {
+            position: relative;
+            aspect-ratio: 16 / 10;
+            border-radius: 26px;
+            overflow: hidden;
+            background: linear-gradient(145deg, #0b0c12, #171a28);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 24px 60px rgba(0,0,0,0.4);
+        }
+        .scanner-stage .empty {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            padding: 24px;
+            color: rgba(255,255,255,0.8);
+            background:
+                radial-gradient(circle at center, rgba(0,212,170,0.08), transparent 35%),
+                linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+        }
+        .scanner-stage .empty .big {
+            font-size: 72px;
+            margin-bottom: 14px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .scanner-stage .empty .small {
+            color: var(--muted);
+            margin-top: 8px;
+            font-size: 14px;
+        }
+        .scanner-stage video,
+        .scanner-stage canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .scanner-stage video {
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        .scanner-stage canvas {
+            pointer-events: none;
+        }
+        .scanner-ring {
+            position: absolute;
+            inset: 50% auto auto 50%;
+            transform: translate(-50%, -50%);
+            width: min(68%, 360px);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 1px solid rgba(0,212,170,0.14);
+            box-shadow: inset 0 0 28px rgba(0,212,170,0.1), 0 0 60px rgba(0,212,170,0.08);
+            animation: pulseRing 2s ease-in-out infinite;
+        }
+        @keyframes pulseRing {
+            0%,100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            50% { transform: translate(-50%, -50%) scale(1.03); opacity: 1; }
+        }
+        .hud-bar {
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(8,10,16,0.72);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .hud-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .hud-pill span {
+            color: #8effe0;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
+        .confidence {
+            min-width: 140px;
+            height: 8px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.08);
+        }
+        .confidence > i {
+            display: block;
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--accent-2), #8effe0);
+            transition: width 0.2s ease;
+        }
+        .result-card {
+            padding: 20px;
+        }
+        .result-card .mood-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .result-card .emoji {
+            width: 72px;
+            height: 72px;
+            border-radius: 22px;
+            display: grid;
+            place-items: center;
+            font-size: 36px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .result-card h3 {
+            margin: 0;
+            font-family: var(--font-head);
+            font-size: 30px;
+            letter-spacing: -0.04em;
+        }
+        .result-card .meta {
+            color: var(--muted);
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        .chip {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .progress-lines {
+            margin-top: 14px;
+            display: grid;
+            gap: 10px;
+        }
+        .line {
+            display: grid;
+            grid-template-columns: 82px 1fr 44px;
+            gap: 10px;
+            align-items: center;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .line .track {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+        .line .track > i {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, rgba(255,77,109,0.95), rgba(0,212,170,0.95));
+        }
+        .footer {
+            margin-top: 28px;
+            color: var(--muted);
+            text-align: center;
+            font-size: 13px;
+        }
+        /* Permission and scanner modals mirror the existing scanner controller IDs. */
+        .camera-permission-modal,
+        .camera-scanner-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.35s ease;
+        }
+        .camera-permission-modal {
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(18px);
+        }
+        .camera-scanner-modal {
+            background: rgba(0,0,0,0.95);
+        }
+        .camera-permission-modal.active,
+        .camera-scanner-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .camera-permission-content,
+        .camera-scanner-container {
+            width: min(540px, 100%);
+        }
+        .camera-permission-content {
+            text-align: center;
+            padding: 40px 34px;
+            border-radius: 30px;
+            background: linear-gradient(145deg, rgba(24,26,40,0.88), rgba(13,15,22,0.96));
+            border: 1px solid rgba(0,212,170,0.22);
+            box-shadow: 0 36px 90px rgba(0,0,0,0.45);
+        }
+        .camera-permission-icon { font-size: 64px; margin-bottom: 18px; animation: float 3s ease-in-out infinite; }
+        .camera-permission-title { font-family: var(--font-head); font-size: 30px; margin-bottom: 10px; }
+        .camera-permission-desc { color: var(--muted); line-height: 1.7; margin-bottom: 18px; }
+        .camera-permission-note {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(0,212,170,0.08);
+            border: 1px solid rgba(0,212,170,0.16);
+            color: #bafdf1;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .camera-permission-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .camera-permission-actions button,
+        .camera-close-btn,
+        .continue-btn {
+            min-height: 48px;
+            border: 0;
+            border-radius: 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .btn-enable-camera { background: linear-gradient(135deg, var(--accent-2), #0ca68d); color: #04110e; }
+        .btn-skip-camera { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid rgba(255,255,255,0.08); }
+        .camera-scanner-container {
+            position: relative;
+            background: linear-gradient(145deg, rgba(20,22,34,0.92), rgba(9,10,16,0.96));
+            border-radius: 28px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 36px 90px rgba(0,0,0,0.45);
+        }
+        .camera-close-btn {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 42px;
+            height: 42px;
+            background: rgba(0,0,0,0.52);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.08);
+            z-index: 3;
+        }
+        .camera-scanner-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 14px;
+            padding-right: 54px;
+        }
+        .camera-scanner-head strong {
+            font-family: var(--font-head);
+            font-size: 18px;
+        }
+        .camera-status {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .camera-status::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-2);
+            box-shadow: 0 0 12px var(--accent-2);
+            margin-right: 8px;
+            animation: pulse 1.6s ease-in-out infinite;
+            vertical-align: middle;
+        }
+        .result-wrap {
+            margin-top: 16px;
+            display: none;
+        }
+        .result-wrap.show-result { display: block; }
+        .result-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .continue-btn { background: linear-gradient(135deg, var(--accent), #c81e4e); color: #fff; padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; }
+        .continue-btn.secondary { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid rgba(255,255,255,0.08); }
+        .bottom-nav {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            z-index: 40;
+            display: none;
+            grid-template-columns: repeat(5, minmax(0,1fr));
+            gap: 8px;
+            padding: 10px;
+            border-radius: 22px;
+            background: rgba(10,10,16,0.88);
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+        }
+        .bottom-nav a {
+            display: grid;
+            place-items: center;
+            gap: 4px;
+            color: var(--muted);
+            font-size: 11px;
+            text-align: center;
+            padding: 10px 6px;
+            border-radius: 16px;
+        }
+        .bottom-nav a.active { color: #fff; background: rgba(255,255,255,0.05); }
+        .mobile-ai {
+            position: fixed;
+            right: 18px;
+            bottom: 88px;
+            z-index: 42;
+            display: none;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(255,77,109,0.95), rgba(0,212,170,0.9));
+            box-shadow: 0 18px 40px rgba(255,77,109,0.2);
+        }
+        @media (max-width: 1100px) {
+            .hero, .scanner-layout { grid-template-columns: 1fr; }
+            .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero { padding: 20px; }
+            .hero h1 { font-size: 40px; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .bottom-nav { display: grid; }
+            .mobile-ai { display: flex; }
+            .container { padding-bottom: 130px; }
+        }
+        @media (max-width: 560px) {
+            .container, .topbar-inner { width: min(100%, calc(100% - 18px)); }
+            .camera-permission-content { padding: 28px 20px; }
+            .camera-permission-actions { grid-template-columns: 1fr; }
+            .camera-scanner-head { flex-direction: column; align-items: start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/">
+                <div class="brand-mark">◉</div>
+                <div>
+                    <div>MoodFlix</div>
+                    <small style="color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;">AI Streaming</small>
+                </div>
+            </a>
+            <nav class="nav-links">
+                <a href="/">Home</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/search">Search</a>
+                <a href="/recommendations">Recommendations</a>
+                <a href="/watchlist">Watchlist</a>
+                <a href="/profile">Profile</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="hero">
+            <div class="hero-copy">
+                <div class="eyebrow">{{ page.hero.eyebrow }}</div>
+                <h1>{{ page.hero.title }}</h1>
+                <p>{{ page.hero.subtitle }}</p>
+                <div class="actions">
+                    <button class="btn btn-primary" type="button" onclick="window.cameraMoodUI.showPermissionModal()">Enable Camera</button>
+                    <a class="btn btn-secondary" href="/recommendations">Skip to recommendations</a>
+                    <a class="btn btn-tertiary" href="/dashboard">Browse dashboard</a>
+                </div>
+            </div>
+            <div class="hero-card panel">
+                <h2>AI Mood Scanner</h2>
+                <p>Open the camera scanner, detect your mood locally, and jump into a personalized movie path without leaving the cinematic flow.</p>
+                <div class="result-card">
+                    <div class="mood-row">
+                        <div class="emoji">📷</div>
+                        <div>
+                            <h3>Privacy-safe scanning</h3>
+                            <div style="color: var(--muted);">No face data is stored or sent elsewhere.</div>
+                        </div>
+                    </div>
+                    <div class="chips">
+                        <span class="chip">Local processing</span>
+                        <span class="chip">Emotion tracking</span>
+                        <span class="chip">Mood handoff</span>
+                        <span class="chip">Instant recs</span>
+                    </div>
+                    <div class="progress-lines">
+                        <div class="line"><span>Models</span><div class="track"><i style="width: 100%"></i></div><span>100%</span></div>
+                        <div class="line"><span>Scan</span><div class="track"><i style="width: 76%"></i></div><span>76%</span></div>
+                        <div class="line"><span>Result</span><div class="track"><i style="width: 48%"></i></div><span>48%</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {% if page.sections %}
+        {% for section in page.sections %}
+        <section class="scanner-layout">
+            <div class="panel">
+                <h2>{{ section.title }}</h2>
+                <p>How the scanner works in practice.</p>
+                <div class="feature-grid">
+                    {% for item in section['items'] %}
+                    <div class="feature-card">
+                        <div class="icon">{{ item.icon }}</div>
+                        <h3>{{ item.title }}</h3>
+                        <p>{{ item.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="panel">
+                <h2>Live result</h2>
+                <p>When a scan finishes, the selected mood and confidence appear here before recommendation routing.</p>
+                <div class="result-card" id="scannerResultCard">
+                    <div class="mood-row">
+                        <div class="emoji" id="resultEmoji">😐</div>
+                        <div>
+                            <h3 id="resultMood">Waiting to scan</h3>
+                            <div style="color: var(--muted);" id="resultConfidence">Enable the camera to start.</div>
+                        </div>
+                    </div>
+                    <div class="chips" id="resultGenres">
+                        <span class="chip">Comedy</span>
+                        <span class="chip">Drama</span>
+                        <span class="chip">Adventure</span>
+                    </div>
+                    <div class="result-wrap" id="resultWrap">
+                        <div class="meta" id="resultTagline" style="color: var(--muted); line-height: 1.7;"></div>
+                        <div class="result-actions">
+                            <a class="continue-btn" id="continueButton" href="/recommendations">See recommendations</a>
+                            <button class="continue-btn secondary" type="button" onclick="window.cameraMoodUI.showPermissionModal()">Rescan</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endfor %}
+        {% endif %}
+
+        <div class="footer">MoodFlix AI Mood Scanner · Local-first emotion detection · Designed for privacy-safe cinematic recommendations</div>
+    </div>
+
+    <div class="camera-permission-modal" id="cameraPermissionModal">
+        <div class="camera-permission-content">
+            <div class="camera-permission-icon">📷</div>
+            <div class="camera-permission-title">AI Mood Detection</div>
+            <div class="camera-permission-desc">Allow camera access so the app can read your facial expressions in real time and map them to a movie mood.</div>
+            <div class="camera-permission-note">Your camera feed stays on this device. Frames are analyzed locally and discarded after each scan.</div>
+            <div class="camera-permission-actions">
+                <button class="btn-enable-camera" onclick="window.cameraMoodUI.startCameraDetection()">Enable Camera</button>
+                <button class="btn-skip-camera" onclick="window.cameraMoodUI.hidePermissionModal()">Skip</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="camera-scanner-modal" id="cameraScannerModal">
+        <button class="camera-close-btn" onclick="window.cameraMoodUI.detectionActive=false; window.emotionDetector.stopCamera(); document.getElementById('cameraScannerModal').classList.remove('active');">✕</button>
+        <div class="camera-scanner-container">
+            <div class="camera-scanner-head">
+                <div>
+                    <strong>Face Scan Active</strong>
+                    <div class="camera-status" id="cameraStatus">Initializing camera...</div>
+                </div>
+                <div style="color: #8effe0; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;">Privacy Safe</div>
+            </div>
+            <div class="scanner-stage">
+                <div class="empty" id="scannerEmptyState">
+                    <div>
+                        <div class="big">👁️</div>
+                        <div style="font-family: var(--font-head); font-size: 24px; margin-bottom: 8px;">Center your face in the frame</div>
+                        <div class="small">The scanner uses local emotion inference and never stores the captured image.</div>
+                    </div>
+                </div>
+                <video id="cameraVideo" autoplay playsinline muted></video>
+                <canvas id="detectionCanvas"></canvas>
+                <div class="scanner-ring"></div>
+                <div class="hud-bar">
+                    <div class="hud-pill"><span>Detected</span> <strong id="scannerMoodLabel">Awaiting face</strong></div>
+                    <div class="confidence"><i id="scannerConfidenceFill"></i></div>
+                    <div class="hud-pill"><span>Signal</span> <strong id="scannerConfidenceLabel">0%</strong></div>
+                </div>
+            </div>
+            <div class="result-wrap" id="cameraResultContainer" style="display:none;">
+                <div class="result-card" id="detectionResult" style="margin-top: 16px;">
+                    Scanning your mood...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/search">Search</a>
+        <a href="/watchlist">Watchlist</a>
+        <a href="/profile">Profile</a>
+    </nav>
+    <a class="mobile-ai" href="#cameraPermissionModal" title="AI Mood Scanner">📷</a>
+
+    <script src="/static/emotion-detector.js"></script>
+    <script src="/static/camera-ui.js"></script>
+    <script>
+        window.cameraMoodUIConfig = {
+            onMoodResolved(result) {
+                const resultWrap = document.getElementById('resultWrap');
+                const resultEmoji = document.getElementById('resultEmoji');
+                const resultMood = document.getElementById('resultMood');
+                const resultConfidence = document.getElementById('resultConfidence');
+                const resultGenres = document.getElementById('resultGenres');
+                const resultTagline = document.getElementById('resultTagline');
+                const continueButton = document.getElementById('continueButton');
+                const cameraResult = document.getElementById('cameraResultContainer');
+                const scannerMoodLabel = document.getElementById('scannerMoodLabel');
+                const scannerConfidenceFill = document.getElementById('scannerConfidenceFill');
+                const scannerConfidenceLabel = document.getElementById('scannerConfidenceLabel');
+                const scannerEmptyState = document.getElementById('scannerEmptyState');
+
+                const emojiMap = { happy: '😊', sad: '😢', angry: '😠', scared: '👻', excited: '⚡', chill: '🍃', romantic: '❤️', nostalgic: '🕰️' };
+                const genreMap = {
+                    happy: ['Comedy', 'Adventure', 'Animation'],
+                    sad: ['Drama', 'Inspirational', 'Biography'],
+                    angry: ['Action', 'Thriller', 'Crime'],
+                    scared: ['Horror', 'Mystery', 'Thriller'],
+                    excited: ['Action', 'Adventure', 'Sci-Fi'],
+                    chill: ['Romance', 'Drama', 'Slice of Life'],
+                    romantic: ['Romance', 'Drama', 'Family'],
+                    nostalgic: ['Drama', 'Family', 'Classic']
+                };
+                const taglineMap = {
+                    happy: 'You look upbeat. Let’s queue warm, funny, and high-energy movies.',
+                    sad: 'A softer mood detected. We’ll lean into comforting, emotional, and uplifting films.',
+                    angry: 'High intensity detected. Action and thrillers should hit the right tempo.',
+                    scared: 'We picked suspense and mystery with careful pacing.',
+                    excited: 'You seem energized. Fast-paced, blockbuster-style picks are ideal.',
+                    chill: 'A calm profile suggests relaxed, easy-to-watch selections.',
+                    romantic: 'Romance-forward stories should fit the moment well.',
+                    nostalgic: 'We’ll surface films with memory, warmth, and emotional depth.'
+                };
+
+                const mood = result.mood || 'chill';
+                const confidence = Math.max(0, Math.min(100, Math.round(result.confidence || 0)));
+                const genres = genreMap[mood] || genreMap.chill;
+
+                resultEmoji.textContent = emojiMap[mood] || '😐';
+                resultMood.textContent = mood.charAt(0).toUpperCase() + mood.slice(1);
+                resultConfidence.textContent = `${confidence}% confidence`;
+                resultGenres.innerHTML = genres.map((genre) => `<span class="chip">${genre}</span>`).join('');
+                resultTagline.textContent = taglineMap[mood] || 'Scanning complete. Recommendations are ready.';
+                continueButton.href = `/recommendations?mood=${encodeURIComponent(mood)}`;
+                resultWrap.classList.add('show-result');
+                cameraResult.style.display = 'block';
+                scannerMoodLabel.textContent = resultMood.textContent;
+                scannerConfidenceFill.style.width = `${confidence}%`;
+                scannerConfidenceLabel.textContent = `${confidence}%`;
+                scannerEmptyState.style.display = 'none';
+
+                setTimeout(() => {
+                    window.scrollTo({ top: document.querySelector('.hero').offsetTop, behavior: 'smooth' });
+                }, 300);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.cameraMoodUI.showPermissionModal();
+        });
+    </script>
+</body>
+</html>

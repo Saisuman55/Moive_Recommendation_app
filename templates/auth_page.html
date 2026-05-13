@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title }}</title>
+    <meta name="description" content="{{ page.description }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07070c;
+            --panel: rgba(16, 18, 28, 0.84);
+            --text: #f7f8fc;
+            --muted: #9aa3b2;
+            --line: rgba(255,255,255,0.08);
+            --accent: #ff4d6d;
+            --accent-2: #00d4aa;
+            --font-head: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            font-family: var(--font-body);
+            background:
+                radial-gradient(circle at top left, rgba(255,77,109,0.18), transparent 34%),
+                radial-gradient(circle at top right, rgba(0,212,170,0.14), transparent 30%),
+                linear-gradient(180deg, #050509 0%, var(--bg) 100%);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+        .shell {
+            width: min(1180px, 100%);
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            overflow: hidden;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: linear-gradient(145deg, rgba(20,22,32,0.95), rgba(9,10,16,0.96));
+            box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+        }
+        .visual {
+            position: relative;
+            min-height: 680px;
+            background:
+                linear-gradient(180deg, rgba(6,7,11,0.15), rgba(6,7,11,0.78)),
+                url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
+        }
+        .visual::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255,77,109,0.1), rgba(0,212,170,0.04));
+        }
+        .visual-copy {
+            position: absolute;
+            inset: auto 0 0 0;
+            padding: 34px;
+            z-index: 1;
+        }
+        .visual-copy .eyebrow {
+            display: inline-flex;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(0,212,170,0.1);
+            border: 1px solid rgba(0,212,170,0.16);
+            color: #8effe0;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .visual-copy h1 {
+            margin: 16px 0 10px;
+            font-family: var(--font-head);
+            font-size: clamp(40px, 5vw, 72px);
+            line-height: 0.95;
+            letter-spacing: -0.05em;
+        }
+        .visual-copy p { margin: 0; color: rgba(255,255,255,0.75); line-height: 1.7; }
+        .panel {
+            padding: 34px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .back-link { color: var(--muted); font-size: 14px; }
+        h2 { margin: 0; font-family: var(--font-head); font-size: 34px; letter-spacing: -0.05em; }
+        .sub { margin: 0; color: var(--muted); line-height: 1.7; }
+        .form {
+            display: grid;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .field {
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            outline: none;
+        }
+        .field::placeholder { color: var(--muted); }
+        .options {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .chip {
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--muted);
+        }
+        .btn {
+            min-height: 50px;
+            border-radius: 14px;
+            border: 0;
+            font-weight: 800;
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), #c81e4e);
+        }
+        .btn.secondary {
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .note {
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: rgba(0,212,170,0.08);
+            border: 1px solid rgba(0,212,170,0.14);
+            color: #bafdf1;
+            line-height: 1.6;
+            font-size: 13px;
+        }
+        .row { display: flex; gap: 10px; flex-wrap: wrap; }
+        @media (max-width: 960px) {
+            .shell { grid-template-columns: 1fr; }
+            .visual { min-height: 280px; }
+        }
+        @media (max-width: 560px) {
+            .panel { padding: 24px; }
+            .options { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="visual">
+            <div class="visual-copy">
+                <div class="eyebrow">{{ page.mode|upper }} / MoodFlix</div>
+                <h1>Premium cinematic access.</h1>
+                <p>Glassmorphism auth screens with dark luxury styling, smooth form interactions, and AI-friendly onboarding for the next-generation OTT experience.</p>
+            </div>
+        </section>
+        <section class="panel">
+            <a class="back-link" href="/">← Back home</a>
+            <h2>
+                {% if page.mode == 'login' %}Login{% elif page.mode == 'signup' %}Create your account{% else %}Reset your password{% endif %}
+            </h2>
+            <p class="sub">{{ page.description }}</p>
+            <div class="note">Secure, mobile-first, and designed to feel like a premium streaming service sign-in experience.</div>
+            <form class="form">
+                {% if page.mode == 'signup' %}
+                <input class="field" placeholder="Full name">
+                {% endif %}
+                <input class="field" type="email" placeholder="Email address">
+                {% if page.mode != 'forgot' %}
+                <input class="field" type="password" placeholder="Password">
+                {% endif %}
+                {% if page.mode == 'signup' %}
+                <input class="field" placeholder="Favorite genres">
+                <input class="field" placeholder="Preferred languages">
+                {% endif %}
+                {% if page.mode == 'forgot' %}
+                <input class="field" placeholder="OTP / reset code">
+                {% endif %}
+                <div class="row">
+                    <button class="btn" type="button">{% if page.mode == 'login' %}Login{% elif page.mode == 'signup' %}Signup{% else %}Send reset link{% endif %}</button>
+                    <a class="btn secondary" href="/dashboard" style="display:inline-flex;align-items:center;justify-content:center;">Continue as guest</a>
+                </div>
+            </form>
+            <div class="options">
+                <div class="chip">Email login</div>
+                <div class="chip">Social login</div>
+                <div class="chip">Remember me</div>
+                <div class="chip">Camera permissions</div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

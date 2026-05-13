@@ -137,6 +137,31 @@ Open:
 http://localhost:5001
 ```
 
+## App Working
+
+The app was tested locally on `http://localhost:5001`. The health endpoint returned a successful response with 1000 movies loaded and MongoDB enabled:
+
+```json
+{
+  "catalog_size": 1000,
+  "mongodb": true,
+  "movies_loaded": 1000,
+  "status": "ok"
+}
+```
+
+### Home Page
+
+![MoodFlix home page](docs/screenshots/home.png)
+
+### AI Mood Scanner
+
+![MoodFlix AI mood scanner](docs/screenshots/mood-ai.png)
+
+### Mood Recommendations
+
+![MoodFlix recommendations page](docs/screenshots/recommendations.png)
+
 ## Main Pages
 
 - `/` - Landing page

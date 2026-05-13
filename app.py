@@ -41,7 +41,7 @@ app.jinja_env.auto_reload = True
 def _configured_origins():
     origins = os.getenv(
         'CORS_ORIGINS',
-        'http://localhost:5001,http://127.0.0.1:5001,http://localhost:3000,http://127.0.0.1:3000'
+        'http://localhost:5001,http://127.0.0.1:5001,http://localhost:3000,http://127.0.0.1:3000,https://moive-recommendation-app.onrender.com'
     )
     return [origin.strip() for origin in origins.split(',') if origin.strip()]
 
@@ -321,7 +321,7 @@ def landing_page_data():
 
 def dashboard_page_data(page=1):
     top_rated = ranked_catalog(sort_key='rating')
-    recently_released = ranked_catalog(sort_key='year')
+    recently_released = [m for m in ranked_catalog(sort_key='year') if float(m.get('rating') or 0) > 0]
     popular = ranked_catalog()[:100]
     ai_recommended = [movie for movie in top_rated if movie.get('rating', 0) >= 7.5][:50]
     regional = [movie for movie in catalog if any(language in str(movie.get('language') or '').lower() for language in ['hi', 'te', 'ta', 'ml', 'kn', 'or'])]

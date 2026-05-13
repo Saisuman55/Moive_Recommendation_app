@@ -101,5 +101,5 @@ class MoodRecommender:
         # Sort & format top N
         top = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
         result_df = self.movies.loc[[i for i, _ in top]].copy()
-        result_df['match_score'] = [round(scores[i] * 100, 1) for i, _ in top]
+        result_df['match_score'] = [min(round(scores[i] * 100, 1), 10.0) for i, _ in top]
         return result_df
